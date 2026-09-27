@@ -1,0 +1,1102 @@
+/* ==========================================================================
+   MATLAB Fuzzy Logic Designer - Estilos CSS Profesionales
+   Tema: MATLAB Modern Desktop (Windows Segoe UI + Ribbon + Paleta Técnica)
+   ========================================================================== */
+
+:root {
+  --matlab-blue: #0076a8;
+  --matlab-blue-dark: #005a82;
+  --matlab-blue-light: #e6f3f9;
+  --matlab-ribbon-bg: #f5f6f7;
+  --matlab-ribbon-border: #d6d9dc;
+  --matlab-toolbar-bg: #e9ecef;
+  --matlab-panel-bg: #ffffff;
+  --matlab-sidebar-bg: #fafbfc;
+  --matlab-border: #d0d7de;
+  --matlab-border-light: #e1e4e8;
+  --matlab-text: #24292f;
+  --matlab-text-muted: #57606a;
+  --matlab-table-header: #f0f2f5;
+  --matlab-table-hover: #eef5fb;
+  --matlab-table-selected: #d7ebf7;
+  --matlab-tab-active-border: #0076a8;
+
+  --color-optimo: #198754;
+  --color-advertencia: #d97706;
+  --color-critico: #dc3545;
+  --color-baja: #0284c7;
+
+  --font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, "Roboto", sans-serif;
+  --font-mono: "Consolas", "Courier New", monospace;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+  font-family: var(--font-family);
+  font-size: 12px;
+  color: var(--matlab-text);
+  background-color: #e5e8eb;
+  user-select: none;
+}
+
+/* ==========================================================================
+   1. VENTANA PRINCIPAL & ENCABEZADO
+   ========================================================================== */
+.matlab-app {
+  display: flex;
+  flex-direction: column;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* Barra de Título tipo Windows / MATLAB */
+.matlab-titlebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 30px;
+  background-color: #005a82;
+  color: #ffffff;
+  padding: 0 12px;
+  font-weight: 500;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.titlebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.titlebar-brand span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.titlebar-brand img.logo {
+  width: 16px;
+  height: 16px;
+}
+
+.titlebar-status {
+  font-size: 11px;
+  opacity: 0.85;
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-left: 12px;
+}
+
+/* ==========================================================================
+   2. RIBBON TOOLBAR (ESTILO MATLAB)
+   ========================================================================== */
+.matlab-ribbon {
+  background-color: var(--matlab-ribbon-bg);
+  border-bottom: 1px solid var(--matlab-ribbon-border);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+  flex-shrink: 0;
+}
+
+.ribbon-tabs {
+  display: flex;
+  background-color: #e4e7eb;
+  padding-left: 8px;
+  border-bottom: 1px solid var(--matlab-ribbon-border);
+  flex-shrink: 0;
+}
+
+.ribbon-tab {
+  padding: 5px 16px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--matlab-text-muted);
+  cursor: pointer;
+  border: 1px solid transparent;
+  border-bottom: none;
+  border-radius: 3px 3px 0 0;
+  background: transparent;
+  transition: all 0.15s ease;
+}
+
+.ribbon-tab.active {
+  background-color: var(--matlab-ribbon-bg);
+  color: var(--matlab-blue);
+  border-color: var(--matlab-ribbon-border);
+  border-bottom: 1px solid var(--matlab-ribbon-bg);
+  margin-bottom: -1px;
+}
+
+.ribbon-groups {
+  display: flex;
+  align-items: stretch;
+  padding: 4px 6px;
+  height: 84px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  flex-wrap: nowrap;
+}
+
+.ribbon-group {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 0 8px;
+  border-right: 1px solid var(--matlab-border-light);
+  flex-shrink: 0;
+}
+
+.ribbon-group:last-child {
+  border-right: none;
+}
+
+.ribbon-group-content {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+}
+
+.ribbon-group-title {
+  text-align: center;
+  font-size: 10px;
+  color: var(--matlab-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding-top: 2px;
+  white-space: nowrap;
+}
+
+.ribbon-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 4px 8px;
+  min-width: 58px;
+  height: 56px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--matlab-text);
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.ribbon-btn i {
+  font-size: 20px;
+  color: var(--matlab-blue);
+}
+
+.ribbon-btn:hover {
+  background-color: #e8ecf1;
+  border-color: #cbd3dc;
+}
+
+.ribbon-btn:active {
+  background-color: #d6e0ea;
+}
+
+.ribbon-btn.highlight {
+  background-color: #e6f4ea;
+  border-color: #a8dab5;
+}
+.ribbon-btn.highlight i {
+  color: #1b873f;
+}
+.ribbon-btn.highlight:hover {
+  background-color: #d2ecd9;
+}
+
+.ribbon-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  justify-content: center;
+}
+
+.ribbon-input-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+}
+
+.ribbon-input-row label {
+  width: 65px;
+  color: var(--matlab-text-muted);
+}
+
+.ribbon-input-row input {
+  width: 50px;
+  padding: 2px 4px;
+  border: 1px solid var(--matlab-border);
+  border-radius: 3px;
+  font-size: 11px;
+}
+
+/* ==========================================================================
+   3. CUERPO PRINCIPAL (3 COLUMNAS: IZQ BROWSER, CENTRO TABS, DER INSPECTOR)
+   ========================================================================== */
+.matlab-body {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background-color: #dce1e6;
+  gap: 4px;
+  padding: 4px;
+}
+
+/* --- Panel Izquierdo: Dataset, Parámetros Apriori y Variables --- */
+.matlab-sidebar {
+  width: 235px;
+  min-width: 215px;
+  max-width: 260px;
+  flex-shrink: 0;
+  background-color: var(--matlab-sidebar-bg);
+  border: 1px solid var(--matlab-border);
+  border-radius: 3px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  gap: 1px;
+}
+
+.sidebar-section {
+  background-color: #ffffff;
+  border-bottom: 1px solid var(--matlab-border-light);
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-section-header {
+  height: 26px;
+  background: linear-gradient(to bottom, #f7f9fa, #ebedf0);
+  border-bottom: 1px solid var(--matlab-border-light);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px;
+  font-weight: 700;
+  font-size: 10.5px;
+  color: #334e68;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+
+.sidebar-section-header i {
+  color: var(--matlab-blue);
+  font-size: 11px;
+}
+
+.sidebar-section-body {
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background-color: #ffffff;
+}
+
+/* Botón Subir Dataset */
+.btn-sidebar-dataset {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 6px 10px;
+  background-color: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-sidebar-dataset:hover:not(:disabled) {
+  background-color: #e2e8f0;
+  border-color: #94a3b8;
+}
+
+.btn-sidebar-dataset:disabled,
+.btn-sidebar-dataset.disabled {
+  background-color: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+  color: #94a3b8 !important;
+  cursor: not-allowed !important;
+  opacity: 0.85;
+}
+
+.dataset-status-text {
+  font-size: 10.5px;
+  color: #0f766e;
+  background-color: #f0fdfa;
+  border: 1px solid #ccfbf1;
+  padding: 3px 6px;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 500;
+}
+
+/* Filas de parámetros Apriori */
+.sidebar-param-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  gap: 8px;
+}
+
+.sidebar-param-row label {
+  color: #475569;
+  font-weight: 500;
+}
+
+.sidebar-param-row input {
+  width: 65px;
+  padding: 3px 6px;
+  border: 1px solid #cbd5e1;
+  border-radius: 3px;
+  font-size: 11px;
+  text-align: right;
+  font-weight: 600;
+  color: #1e293b;
+  background-color: #f8fafc;
+}
+
+.sidebar-param-row input:focus {
+  outline: none;
+  border-color: #0284c7;
+  background-color: #ffffff;
+}
+
+.tree-view {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 6px;
+  background-color: #ffffff;
+}
+
+.tree-node {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  cursor: pointer;
+  border-radius: 3px;
+  font-size: 11px;
+}
+
+.tree-node:hover {
+  background-color: var(--matlab-table-hover);
+}
+
+.tree-node.active {
+  background-color: var(--matlab-table-selected);
+  color: var(--matlab-blue-dark);
+  font-weight: 600;
+}
+
+.tree-node i {
+  width: 14px;
+  text-align: center;
+}
+
+.tree-children {
+  margin-left: 16px;
+  border-left: 1px dotted #ccc;
+  padding-left: 6px;
+}
+
+/* --- Panel Central: Workspace Tabs --- */
+.matlab-center {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--matlab-panel-bg);
+  border: 1px solid var(--matlab-border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.center-tabs {
+  display: flex;
+  background-color: #e9ecef;
+  border-bottom: 1px solid var(--matlab-border);
+  padding: 0 4px;
+  flex-shrink: 0;
+  overflow-x: auto;
+}
+
+.center-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--matlab-text-muted);
+  cursor: pointer;
+  background-color: #e0e4e8;
+  border: 1px solid var(--matlab-border);
+  border-bottom: none;
+  margin-right: 3px;
+  border-radius: 4px 4px 0 0;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background-color 0.15s;
+}
+
+.center-tab:hover {
+  background-color: #f0f3f6;
+}
+
+.center-tab.active {
+  background-color: #ffffff;
+  color: var(--matlab-blue-dark);
+  border-bottom: 1px solid #ffffff;
+  margin-bottom: -1px;
+}
+
+.center-content {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  position: relative;
+  background-color: #ffffff;
+}
+
+.tab-pane {
+  display: none;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 10px;
+}
+
+.tab-pane.active {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ==========================================================================
+   4. TAB 1: TABLA DE REGLAS (RÉPLICA EXACTA MATLAB FUZZY DESIGNER)
+   ========================================================================== */
+.rule-editor-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 8px;
+  background-color: #f7f9fa;
+  border: 1px solid var(--matlab-border-light);
+  border-radius: 4px;
+  margin-bottom: 8px;
+  gap: 8px;
+}
+
+.rule-toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rule-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.btn-matlab {
+  padding: 4px 10px;
+  background: linear-gradient(to bottom, #ffffff, #f0f2f5);
+  border: 1px solid var(--matlab-border);
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.15s;
+}
+
+.btn-matlab:hover {
+  background: #e6edf3;
+  border-color: #9cb1c6;
+}
+
+.btn-matlab.btn-primary {
+  background: linear-gradient(to bottom, #0087bf, #006b99);
+  color: #ffffff;
+  border-color: #00567a;
+}
+
+.btn-matlab.btn-primary:hover {
+  background: linear-gradient(to bottom, #0096d6, #0077aa);
+}
+
+.badge-count {
+  background-color: #0076a8;
+  color: white;
+  padding: 2px 7px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: bold;
+}
+
+/* Contenedor de la Tabla con scroll */
+.table-container {
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+  border: 1px solid var(--matlab-border);
+  border-radius: 3px;
+  background-color: #ffffff;
+}
+
+.matlab-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+
+.matlab-table thead {
+  position: sticky;
+  top: 0;
+  background-color: var(--matlab-table-header);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+  z-index: 10;
+}
+
+.matlab-table th {
+  padding: 6px 8px;
+  text-align: left;
+  border-right: 1px solid var(--matlab-border-light);
+  border-bottom: 1px solid var(--matlab-border);
+  font-weight: 600;
+  color: var(--matlab-text-muted);
+}
+
+.matlab-table th:last-child {
+  border-right: none;
+}
+
+.matlab-table td {
+  padding: 5px 8px;
+  border-right: 1px solid var(--matlab-border-light);
+  border-bottom: 1px solid #f0f2f5;
+  white-space: nowrap;
+}
+
+.matlab-table td:last-child {
+  border-right: none;
+}
+
+.matlab-table tbody tr {
+  cursor: pointer;
+  transition: background-color 0.1s;
+}
+
+.matlab-table tbody tr:nth-child(even) {
+  background-color: #fafbfc;
+}
+
+.matlab-table tbody tr:hover {
+  background-color: var(--matlab-table-hover);
+}
+
+.matlab-table tbody tr.selected {
+  background-color: var(--matlab-table-selected) !important;
+  font-weight: 500;
+}
+
+.badge-weight {
+  display: inline-block;
+  padding: 1px 6px;
+  background-color: #e2f0d9;
+  color: #276a3c;
+  border-radius: 3px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+}
+
+/* ==========================================================================
+   5. TAB 2: CURVAS DE PERTENENCIA (4 GRÁFICAS ASHRAE)
+   ========================================================================== */
+.membership-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 10px;
+  height: 100%;
+}
+
+.membership-grid.single-view {
+  display: flex !important;
+  flex-direction: column;
+  height: calc(100% - 34px);
+}
+
+.membership-grid.single-view .mf-card {
+  flex: 1;
+  height: 100%;
+  min-height: 0;
+}
+
+.membership-grid.single-view .mf-card-body {
+  height: calc(100% - 30px);
+}
+
+.mf-card {
+  border: 1px solid var(--matlab-border);
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  overflow: hidden;
+}
+
+.mf-card-header {
+  padding: 4px 8px;
+  background-color: #f7f9fa;
+  border-bottom: 1px solid var(--matlab-border-light);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--matlab-blue-dark);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.mf-card-body {
+  flex: 1;
+  position: relative;
+  padding: 4px;
+}
+
+/* ==========================================================================
+   6. TAB 3: SUPERFICIE DE CONTROL 3D (PLOTLY)
+   ========================================================================== */
+.surface-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.surface-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 10px;
+  background-color: #f7f9fa;
+  border-bottom: 1px solid var(--matlab-border);
+}
+
+.surface-plot {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+}
+
+/* ==========================================================================
+   7. TAB 4: ALGORITMO GENÉTICO (CONVERGENCIA Y AHORRO)
+   ========================================================================== */
+.ga-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  gap: 10px;
+}
+
+.ga-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background-color: #f7f9fa;
+  border: 1px solid var(--matlab-border);
+  border-radius: 4px;
+}
+
+.ga-params {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.ga-param-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+}
+
+.ga-param-item input {
+  width: 60px;
+  padding: 3px 6px;
+  border: 1px solid var(--matlab-border);
+  border-radius: 3px;
+}
+
+.ga-results-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 10px;
+  flex: 1;
+}
+
+.ga-chart-card {
+  border: 1px solid var(--matlab-border);
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  padding: 8px;
+  background: white;
+}
+
+.ga-summary-card {
+  border: 1px solid var(--matlab-border);
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  padding: 12px;
+  background: #ffffff;
+  overflow-y: auto;
+  gap: 10px;
+}
+
+.savings-kpi {
+  background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
+  border: 1px solid #81c784;
+  border-radius: 6px;
+  padding: 12px;
+  text-align: center;
+}
+
+.savings-kpi .value {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1b5e20;
+}
+
+.savings-kpi .subtitle {
+  font-size: 11px;
+  color: #2e7d32;
+  margin-top: 2px;
+}
+
+.setpoints-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+  margin-top: 6px;
+}
+
+.setpoints-table th, .setpoints-table td {
+  padding: 4px 6px;
+  border: 1px solid var(--matlab-border-light);
+  text-align: center;
+}
+
+.setpoints-table th {
+  background-color: #f0f2f5;
+  color: var(--matlab-text-muted);
+}
+
+.temp-fija-panel {
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  padding: 8px 10px;
+  margin: 6px 0 8px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.temp-fija-panel input[type="number"] {
+  border: 1px solid #94a3b8;
+  border-radius: 3px;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.temp-fija-panel input[type="number"]:focus {
+  border-color: #0284c7;
+  box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.15);
+}
+
+
+/* ==========================================================================
+   8. PANEL DERECHO: INSPECTOR DE PROPIEDADES & INFERENCIA EN TIEMPO REAL
+   ========================================================================== */
+.matlab-inspector {
+  width: 320px;
+  min-width: 290px;
+  max-width: 350px;
+  flex-shrink: 0;
+  background-color: var(--matlab-sidebar-bg);
+  border: 1px solid var(--matlab-border);
+  border-radius: 3px;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.inspector-section {
+  padding: 10px;
+  border-bottom: 1px solid var(--matlab-border);
+  background-color: #ffffff;
+}
+
+.inspector-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--matlab-blue-dark);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Sliders de simulación */
+.slider-group {
+  margin-bottom: 10px;
+}
+
+.slider-label-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  margin-bottom: 2px;
+}
+
+.slider-name {
+  font-weight: 500;
+}
+
+.slider-val-box {
+  font-family: var(--font-mono);
+  font-weight: bold;
+  color: var(--matlab-blue);
+  background-color: #f0f4f8;
+  padding: 1px 6px;
+  border-radius: 3px;
+  border: 1px solid #d0dbe5;
+}
+
+input[type="range"] {
+  width: 100%;
+  height: 4px;
+  border-radius: 2px;
+  background: #d6d9dc;
+  outline: none;
+  cursor: pointer;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--matlab-blue);
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
+/* Medidor de salida (Gauge / Barra) */
+.output-meter-card {
+  background: linear-gradient(to bottom, #fafbfc, #f1f4f7);
+  border: 1px solid var(--matlab-border);
+  border-radius: 6px;
+  padding: 10px;
+  margin-top: 6px;
+  text-align: center;
+}
+
+.output-value-big {
+  font-size: 28px;
+  font-weight: 800;
+  color: #005a82;
+  font-family: var(--font-mono);
+  margin: 4px 0;
+}
+
+.progress-bar-bg {
+  width: 100%;
+  height: 14px;
+  background-color: #e2e6ea;
+  border-radius: 7px;
+  overflow: hidden;
+  margin-top: 6px;
+  border: 1px solid #c9d0d6;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(to right, #0076a8, #00b4d8);
+  transition: width 0.15s ease, background 0.2s ease;
+}
+
+/* Badge Normativo */
+.norm-badge {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  text-align: center;
+  width: 100%;
+}
+
+.badge-optimo {
+  background-color: #d1e7dd;
+  color: #0f5132;
+  border: 1px solid #badbcc;
+}
+
+.badge-advertencia {
+  background-color: #fff3cd;
+  color: #664d03;
+  border: 1px solid #ffecb5;
+}
+
+.badge-critico {
+  background-color: #f8d7da;
+  color: #842029;
+  border: 1px solid #f5c2c7;
+}
+
+/* Inspector de Regla Seleccionada */
+.rule-details-box {
+  background-color: #f8f9fa;
+  border: 1px solid var(--matlab-border-light);
+  border-radius: 4px;
+  padding: 8px;
+  font-size: 11px;
+}
+
+.rule-detail-row {
+  margin-bottom: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.rule-detail-row .lbl {
+  color: var(--matlab-text-muted);
+  font-size: 10px;
+  text-transform: uppercase;
+}
+
+.rule-detail-row .val {
+  font-weight: 500;
+}
+
+/* ==========================================================================
+   9. BARRA DE ESTADO INFERIOR
+   ========================================================================== */
+.matlab-statusbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 22px;
+  background-color: #e9ecef;
+  border-top: 1px solid var(--matlab-border);
+  padding: 0 10px;
+  font-size: 11px;
+  color: var(--matlab-text-muted);
+  flex-shrink: 0;
+}
+
+.statusbar-left, .statusbar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #198754;
+  display: inline-block;
+}
+
+/* Modal Apriori / Alerta */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0,0,0,0.4);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-card {
+  background: white;
+  border-radius: 6px;
+  width: 440px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+  overflow: hidden;
+  border: 1px solid var(--matlab-border);
+}
+
+.modal-header {
+  background-color: #f4f6f8;
+  padding: 10px 14px;
+  font-weight: 600;
+  border-bottom: 1px solid var(--matlab-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-body {
+  padding: 16px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.modal-footer {
+  padding: 10px 14px;
+  background-color: #f9fafb;
+  border-top: 1px solid var(--matlab-border-light);
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}

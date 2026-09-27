@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Climatización Eficiente y Optimización Energética para Servidores en Centros de Datos bajo el Estándar ASHRAE
+    TC 9.9 mediante Lógica Difusa y Algoritmos Genéticos</title>
+
+  <!-- Estilos FontAwesome & MATLAB -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="/css/matlab_estilo.css">
+
+  <!-- Chart.js para Curvas de Pertenencia y Plotly para Superficie 3D -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+</head>
+
+<body>
+
+  <div class="matlab-app">
+
+    <!-- 1. BARRA DE TÍTULO TIPO WINDOWS / MATLAB -->
+    <div class="matlab-titlebar">
+      <div class="titlebar-brand">
+        <i class="fa-solid fa-microchip"></i>
+        <span>Climatización Eficiente y Optimización Energética para Servidores en Centros de Datos bajo el Estándar
+          ASHRAE TC 9.9 mediante Lógica Difusa y Algoritmos Genéticos</span>
+      </div>
+      <div class="titlebar-status">
+        <span>UTA - 7mo Software</span>
+      </div>
+    </div>
+
+    <!-- 2. CUERPO PRINCIPAL (3 COLUMNAS) -->
+    <div class="matlab-body">
+
+      <!-- COLUMNA IZQUIERDA: DATASET, PARÁMETROS Y VARIABLES -->
+      <div class="matlab-sidebar">
+
+        <!-- Sección 1: Dataset de Sensores -->
+        <div class="sidebar-section">
+          <div class="sidebar-section-header">
+            <i class="fa-solid fa-database"></i>
+            <span>Dataset de Sensores</span>
+          </div>
+          <div class="sidebar-section-body">
+            <input type="file" id="inputArchivoCSV" accept=".csv" style="display: none;">
+            <button class="btn-sidebar-dataset disabled" id="btnSubirDataset" disabled
+              title="Dataset ya cargado en el sistema (1500 registros)">
+              <i class="fa-solid fa-lock"></i>
+              <span>Subir CSV</span>
+            </button>
+            <div class="dataset-status-text" id="lblEstadoDatasetSidebar">
+              <i class="fa-solid fa-circle-check" style="color: #10b981;"></i> Dataset Cargado
+            </div>
+          </div>
+        </div>
+
+        <!-- Sección 2: Parámetros Algoritmo Apriori -->
+        <div class="sidebar-section">
+          <div class="sidebar-section-header">
+            <i class="fa-solid fa-sliders"></i>
+            <span>Parámetros Apriori</span>
+          </div>
+          <div class="sidebar-section-body">
+            <div class="sidebar-param-row">
+              <label for="inputSoporte">Soporte mín.:</label>
+              <input type="number" id="inputSoporte" value="0.02" step="0.01" min="0.01" max="1.0">
+            </div>
+            <div class="sidebar-param-row">
+              <label for="inputConfianza">Confianza mín.:</label>
+              <input type="number" id="inputConfianza" value="0.40" step="0.05" min="0.1" max="1.0">
+            </div>
+          </div>
+        </div>
+
+        <!-- Sección 3: Entradas y Salidas -->
+        <div class="sidebar-section"
+          style="flex: 1; display: flex; flex-direction: column; min-height: 0; border-bottom: none;">
+          <div class="sidebar-section-header">
+            <i class="fa-solid fa-folder-tree"></i>
+            <span>Entradas y Salidas</span>
+          </div>
+          <div class="tree-view" style="flex: 1; overflow-y: auto;">
+            <!-- Entradas -->
+            <div class="tree-node" style="font-weight: 600; color: #333d47;">
+              <i class="fa-solid fa-arrow-right-to-bracket" style="color: #d97706;"></i>
+              <span>Entradas</span>
+            </div>
+            <div class="tree-children">
+              <div class="tree-node" id="treeNode-temperatura_rack"
+                onclick="app.mostrarGraficoPertenencia('temperatura_rack')">
+                <i class="fa-solid fa-temperature-half" style="color: #0284c7;"></i>
+                <span>temperatura_rack</span>
+              </div>
+              <div class="tree-node" id="treeNode-uso_cpu" onclick="app.mostrarGraficoPertenencia('uso_cpu')">
+                <i class="fa-solid fa-microchip" style="color: #198754;"></i>
+                <span>uso_cpu</span>
+              </div>
+              <div class="tree-node" id="treeNode-temperatura_exterior"
+                onclick="app.mostrarGraficoPertenencia('temperatura_exterior')">
+                <i class="fa-solid fa-cloud-sun" style="color: #d97706;"></i>
+                <span>temperatura_exterior</span>
+              </div>
+            </div>
+
+            <!-- Salidas -->
+            <div class="tree-node" style="font-weight: 600; color: #333d47; margin-top: 6px;">
+              <i class="fa-solid fa-arrow-right-from-bracket" style="color: #0076a8;"></i>
+              <span>Salidas</span>
+            </div>
+            <div class="tree-children">
+              <div class="tree-node" id="treeNode-potencia_enfriamiento"
+                onclick="app.mostrarGraficoPertenencia('potencia_enfriamiento')">
+                <i class="fa-solid fa-fan" style="color: #0076a8;"></i>
+                <span>potencia_enfriamiento</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- COLUMNA PRINCIPAL: WORKSPACE TABS -->
+      <div class="matlab-center">
+        <div class="center-tabs">
+          <div class="center-tab active" data-tab="tabReglas" id="tabHeadReglas">
+            <i class="fa-solid fa-table"></i> Reglas
+          </div>
+          <div class="center-tab" data-tab="tabCurvas" id="tabHeadCurvas">
+            <i class="fa-solid fa-chart-area"></i> Función de Pertenencia
+          </div>
+          <div class="center-tab" data-tab="tabSuperficie" id="tabHeadSuperficie">
+            <i class="fa-solid fa-mountain"></i> Superficie de Control
+          </div>
+          <div class="center-tab" data-tab="tabGenetico" id="tabHeadGenetico">
+            <i class="fa-solid fa-dna"></i> Algoritmo Genético
+          </div>
+        </div>
+
+        <div class="center-content">
+
+          <!-- TAB 1: TABLA DE REGLAS (RÉPLICA MATLAB FUZZY DESIGNER) -->
+          <div class="tab-pane active" id="tabReglas">
+            <div class="rule-editor-toolbar">
+              <div class="rule-toolbar-left">
+                <button class="btn-matlab btn-primary" id="btnCargarReglasToolbar">
+                  <i class="fa-solid fa-bolt"></i> Extraer mejores reglas
+                </button>
+              </div>
+              <div class="rule-toolbar-right">
+                <span>Mejores Reglas:</span>
+                <span class="badge-count" id="badgeReglasCount">0</span>
+              </div>
+            </div>
+
+            <!-- Tabla idéntica a la del aula de clases -->
+            <div class="table-container">
+              <table class="matlab-table" id="tablaReglas">
+                <thead>
+                  <tr>
+                    <th style="width: 40px; text-align: center;">#</th>
+                    <th>Regla Inferenciada</th>
+                    <th style="width: 90px; text-align: center;">Soporte</th>
+                    <th style="width: 110px; text-align: center;">Confianza</th>
+                    <th style="width: 140px; text-align: center;">Conexión Lógica</th>
+                  </tr>
+                </thead>
+                <tbody id="tbodyReglas">
+                  <tr>
+                    <td colspan="5" style="text-align: center; padding: 30px 20px; color: #64748b;">
+                      <div style="font-size: 24px; color: #0284c7; margin-bottom: 6px;"><i
+                          class="fa-solid fa-database"></i></div>
+                      <div style="font-size: 13px; font-weight: 600; color: #334e68;">Dataset Cargado</div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- TAB 2: CURVAS DE PERTENENCIA -->
+          <div class="tab-pane" id="tabCurvas">
+            <!-- Barra informativa al filtrar una sola variable -->
+            <div class="membership-toolbar" id="toolbarCurvas"
+              style="display: none; padding: 4px 10px; margin-bottom: 6px; background: #ffffff; border: 1px solid var(--matlab-border); border-radius: 3px; align-items: center; justify-content: space-between;">
+              <span id="lblFiltroCurvaActiva" style="font-size: 11px; font-weight: 600; color: #005a82;">
+                <i class="fa-solid fa-chart-line"></i> Función de Pertenencia
+              </span>
+              <button class="btn-matlab" onclick="app.mostrarTodosLosGraficosPertenencia()"
+                style="padding: 2px 8px; font-size: 10.5px; cursor: pointer;">
+                <i class="fa-solid fa-table-cells"></i> Ver todas las funciones (4)
+              </button>
+            </div>
+
+            <div class="membership-grid" id="membershipGrid">
+              <div class="mf-card" id="card-temperatura_rack">
+                <div class="mf-card-header">
+                  <span><i class="fa-solid fa-temperature-half"></i> Entrada: Temperatura en Rack (°C)</span>
+                  <span style="font-size: 10px; color: #666;">ASHRAE TC 9.9 & Dell R740</span>
+                </div>
+                <div class="mf-card-body">
+                  <canvas id="chartTempRack"></canvas>
+                </div>
+              </div>
+
+              <div class="mf-card" id="card-uso_cpu">
+                <div class="mf-card-header">
+                  <span><i class="fa-solid fa-microchip"></i> Entrada: Uso de Procesador (%)</span>
+                  <span style="font-size: 10px; color: #666;">Intel Xeon TDP</span>
+                </div>
+                <div class="mf-card-body">
+                  <canvas id="chartUsoCpu"></canvas>
+                </div>
+              </div>
+
+              <div class="mf-card" id="card-temperatura_exterior">
+                <div class="mf-card-header">
+                  <span><i class="fa-solid fa-cloud-sun"></i> Entrada: Temperatura Exterior (°C)</span>
+                  <span style="font-size: 10px; color: #666;">Gradiente Climático</span>
+                </div>
+                <div class="mf-card-body">
+                  <canvas id="chartTempExt"></canvas>
+                </div>
+              </div>
+
+              <div class="mf-card" id="card-potencia_enfriamiento">
+                <div class="mf-card-header">
+                  <span><i class="fa-solid fa-fan"></i> Salida: Potencia de Enfriamiento (%)</span>
+                  <span style="font-size: 10px; color: #666;">Método Centroide</span>
+                </div>
+                <div class="mf-card-body">
+                  <canvas id="chartPotencia"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB 3: SUPERFICIE DE CONTROL 3D -->
+          <div class="tab-pane" id="tabSuperficie">
+            <div class="surface-container">
+              <div class="surface-controls">
+                <label for="sliderSurfaceExt" style="font-size: 11px; font-weight: 600;">
+                  Temperatura Exterior Fija: <span id="valSurfaceExt" class="slider-val-box">20.0 °C</span>
+                </label>
+                <input type="range" id="sliderSurfaceExt" min="5" max="38" step="1" value="20" style="width: 220px;">
+                <button class="btn-matlab" id="btnActualizarSuperficie">
+                  <i class="fa-solid fa-rotate"></i> Recalcular Superficie
+                </button>
+              </div>
+              <div id="plotSuperficie3D" class="surface-plot"></div>
+            </div>
+          </div>
+
+          <!-- TAB 4: ALGORITMO GENÉTICO -->
+          <div class="tab-pane" id="tabGenetico">
+            <div class="ga-layout">
+              <div class="ga-controls">
+                <div class="ga-params">
+                  <div class="ga-param-item">
+                    <label for="gaPoblacion">Población:</label>
+                    <input type="number" id="gaPoblacion" value="25" min="10" max="60" style="width: 48px;">
+                  </div>
+                  <div class="ga-param-item">
+                    <label for="gaGeneraciones">Generaciones:</label>
+                    <input type="number" id="gaGeneraciones" value="25" min="5" max="50" style="width: 48px;">
+                  </div>
+                  <div class="ga-param-item">
+                    <label for="gaTasaCruce">Cruce (%):</label>
+                    <input type="number" id="gaTasaCruce" value="85" min="40" max="99" step="1" style="width: 48px;">
+                  </div>
+                  <div class="ga-param-item">
+                    <label for="gaTasaMutacion">Mutación (%):</label>
+                    <input type="number" id="gaTasaMutacion" value="10" min="1" max="50" step="1" style="width: 48px;">
+                  </div>
+                </div>
+                <button class="btn-matlab btn-primary" id="btnEjecutarGA">
+                  <i class="fa-solid fa-play"></i> Iniciar Optimización Genética
+                </button>
+              </div>
+
+              <div class="ga-results-grid">
+                <!-- Gráfico de Convergencia -->
+                <div class="ga-chart-card">
+                  <div class="panel-header" style="background: none; border: none; padding-left: 0;">
+                    <span><i class="fa-solid fa-chart-line"></i> Curva de Convergencia de Fitness</span>
+                  </div>
+                  <div style="flex: 1; position: relative;">
+                    <canvas id="chartConvergenciaGA"></canvas>
+                  </div>
+                </div>
+
+                <!-- Resumen de Ahorro y Setpoints Óptimos -->
+                <div class="ga-summary-card">
+
+                  <!-- BLOQUE 1: CONTROL FIJO DE COMPARACIÓN -->
+                  <div>
+                    <div class="inspector-section-title" style="margin-bottom: 4px;">Control Fijo de Comparación:</div>
+
+                    <!-- Control de Temperatura Fija y Métricas de Consumo / Gasto -->
+                    <div class="temp-fija-panel"
+                      style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 4px; padding: 7px 9px; margin: 4px 0 6px 0;">
+                      <div
+                        style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                        <label for="gaTempFija" style="font-weight: 600; color: #102a43; font-size: 11px;">
+                          <i class="fa-solid fa-temperature-half" style="color: #007acc; margin-right: 4px;"></i>Temp.
+                          Fija (°C):
+                        </label>
+                        <input type="number" id="gaTempFija" value="18.0" step="0.5" min="15.0" max="25.0"
+                          style="width: 58px; text-align: center; font-weight: bold; border: 1px solid #9fb3c8; border-radius: 3px; padding: 2px 4px; font-size: 11px;">
+                      </div>
+                      <div
+                        style="display: flex; flex-direction: column; gap: 4px; font-size: 11px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 3px; padding: 6px 8px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                          <span style="color: #486581; font-weight: 500;">
+                            <i class="fa-solid fa-bolt" style="color: #d97706; margin-right: 4px;"></i>Consumo kWh al
+                            día:
+                          </span>
+                          <span id="lblConsumoFijoDiaKwh" style="font-weight: 700; color: #102a43;">539.7 kWh</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                          <span style="color: #486581; font-weight: 500;">
+                            <i class="fa-solid fa-dollar-sign" style="color: #ea580c; margin-right: 4px;"></i>Gasto por
+                            Día:
+                          </span>
+                          <span id="lblGastoDiarioFijo" style="font-weight: 700; color: #c2410c;">$ 64.76 USD/día</span>
+                        </div>
+                        <div
+                          style="display: flex; justify-content: space-between; align-items: center; border-top: 1px dashed #e2e8f0; padding-top: 3px; margin-top: 1px;">
+                          <span style="color: #486581; font-weight: 500;">
+                            <i class="fa-solid fa-calendar-days" style="color: #2563eb; margin-right: 4px;"></i>Consumo
+                            kWh al mes:
+                          </span>
+                          <span id="lblConsumoFijoMesKwh" style="font-weight: 700; color: #102a43;">16,190 kWh</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                          <span style="color: #486581; font-weight: 500;">
+                            <i class="fa-solid fa-file-invoice-dollar"
+                              style="color: #059669; margin-right: 4px;"></i>Gasto Mensual:
+                          </span>
+                          <span id="lblGastoMensualFijo" style="font-weight: 700; color: #b91c1c;">$ 1,942.80
+                            USD/mes</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Tabla exclusiva para Temperatura Fija -->
+                    <table class="setpoints-table" style="margin-bottom: 8px;">
+                      <thead>
+                        <tr>
+                          <th>Franja</th>
+                          <th>Horario</th>
+                          <th>Temp. Fija</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td>Madrugada</td>
+                          <td>00:00 - 06:00</td>
+                          <td class="col-temp-fija">18.0 °C</td>
+                        </tr>
+                        <tr>
+                          <td>Mañana</td>
+                          <td>06:00 - 12:00</td>
+                          <td class="col-temp-fija">18.0 °C</td>
+                        </tr>
+                        <tr>
+                          <td>Tarde</td>
+                          <td>12:00 - 18:00</td>
+                          <td class="col-temp-fija">18.0 °C</td>
+                        </tr>
+                        <tr>
+                          <td>Noche</td>
+                          <td>18:00 - 24:00</td>
+                          <td class="col-temp-fija">18.0 °C</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <!-- BLOQUE 2: TEMPERATURAS OBJETIVO ÓPTIMAS (AG) -->
+                  <div>
+                    <div class="inspector-section-title" style="margin-bottom: 4px;">Temperaturas Objetivo Óptimas (AG):
+                    </div>
+                    <table class="setpoints-table" style="margin-bottom: 6px;">
+                      <thead>
+                        <tr>
+                          <th>Franja</th>
+                          <th>Horario</th>
+                          <th>Óptimo AG</th>
+                        </tr>
+                      </thead>
+                      <tbody id="tbodySetpoints">
+                        <tr>
+                          <td>Madrugada</td>
+                          <td>00:00 - 06:00</td>
+                          <td id="sp0" style="font-weight: 700; color: #005a82;">--</td>
+                        </tr>
+                        <tr>
+                          <td>Mañana</td>
+                          <td>06:00 - 12:00</td>
+                          <td id="sp1" style="font-weight: 700; color: #005a82;">--</td>
+                        </tr>
+                        <tr>
+                          <td>Tarde</td>
+                          <td>12:00 - 18:00</td>
+                          <td id="sp2" style="font-weight: 700; color: #005a82;">--</td>
+                        </tr>
+                        <tr>
+                          <td>Noche</td>
+                          <td>18:00 - 24:00</td>
+                          <td id="sp3" style="font-weight: 700; color: #005a82;">--</td>
+                        </tr>
+                      </tbody>
+                    </table>
+
+                    <!-- Métricas de Consumo y Gasto Óptimo (AG) para comparación directa -->
+                    <div class="temp-opt-panel"
+                      style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 4px; padding: 7px 9px; margin: 6px 0 8px 0;">
+                      <div
+                        style="display: flex; flex-direction: column; gap: 4px; font-size: 11px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 3px; padding: 6px 8px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                          <span style="color: #486581; font-weight: 500;">
+                            <i class="fa-solid fa-bolt" style="color: #d97706; margin-right: 4px;"></i>Consumo kWh al
+                            día:
+                          </span>
+                          <span id="lblConsumoOptDiaKwh" style="font-weight: 700; color: #102a43;">-- kWh</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                          <span style="color: #486581; font-weight: 500;">
+                            <i class="fa-solid fa-dollar-sign" style="color: #ea580c; margin-right: 4px;"></i>Gasto por
+                            Día:
+                          </span>
+                          <span id="lblGastoDiarioOpt" style="font-weight: 700; color: #007acc;">--</span>
+                        </div>
+                        <div
+                          style="display: flex; justify-content: space-between; align-items: center; border-top: 1px dashed #e2e8f0; padding-top: 3px; margin-top: 1px;">
+                          <span style="color: #486581; font-weight: 500;">
+                            <i class="fa-solid fa-calendar-days" style="color: #2563eb; margin-right: 4px;"></i>Consumo
+                            kWh al mes:
+                          </span>
+                          <span id="lblConsumoOptMesKwh" style="font-weight: 700; color: #102a43;">-- kWh</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                          <span style="color: #486581; font-weight: 500;">
+                            <i class="fa-solid fa-file-invoice-dollar"
+                              style="color: #059669; margin-right: 4px;"></i>Gasto Mensual:
+                          </span>
+                          <span id="lblGastoMensualOpt" style="font-weight: 700; color: #007acc;">--</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- BLOQUE 3: TARJETAS DE AHORRO Y BENEFICIO ECONÓMICO (ABAJO DE LAS TABLAS) -->
+                  <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 2px;">
+                    <div class="savings-kpi">
+                      <div class="value" id="gaAhorroKwh">-- kWh/día</div>
+                      <div class="subtitle" id="gaPorcentajeAhorro"
+                        style="font-size: 13px; font-weight: 700; color: #1b5e20; margin-top: 4px;">-- % de Ahorro</div>
+                    </div>
+
+                    <div class="savings-kpi" style="background: #eef2f6; border-color: #b0c4de;">
+                      <div class="value" style="color: #005a82; font-size: 20px;" id="gaAhorroDolares">-- USD/mes</div>
+                      <div class="subtitle" style="color: #334e68;">Reducción del Costo Eléctrico en el DataCenter</div>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- COLUMNA DERECHA: PROPERTY EDITOR & RULE INFERENCE EN TIEMPO REAL -->
+      <div class="matlab-inspector">
+
+        <!-- Sección 1: Inferencia con Lógica Difusa -->
+        <div class="inspector-section">
+
+          <!-- FASE 1: FUZZIFICACIÓN (ENTRADAS) -->
+          <div class="inspector-section-title" style="margin-bottom: 8px;">
+            <i class="fa-solid fa-sliders" style="color: #007acc;"></i> Fuzzificación
+          </div>
+
+          <!-- Slider 1: Temperatura Rack -->
+          <div class="slider-group">
+            <div class="slider-label-row">
+              <span class="slider-name">Temperatura Rack</span>
+              <span class="slider-val-box" id="valRack">22.0 °C</span>
+            </div>
+            <input type="range" id="sliderRack" min="12" max="40" step="0.5" value="22.0">
+          </div>
+
+          <!-- Slider 2: Uso CPU -->
+          <div class="slider-group">
+            <div class="slider-label-row">
+              <span class="slider-name">Uso de CPU</span>
+              <span class="slider-val-box" id="valCpu">50.0 %</span>
+            </div>
+            <input type="range" id="sliderCpu" min="0" max="100" step="1" value="50.0">
+          </div>
+
+          <!-- Slider 3: Temperatura Exterior -->
+          <div class="slider-group">
+            <div class="slider-label-row">
+              <span class="slider-name">Temperatura Exterior</span>
+              <span class="slider-val-box" id="valExt">20.0 °C</span>
+            </div>
+            <input type="range" id="sliderExt" min="5" max="42" step="0.5" value="20.0">
+          </div>
+
+          <!-- FASE 4: DEFUZZIFICACIÓN (SALIDA) -->
+          <div class="inspector-section-title" style="margin-top: 14px; margin-bottom: 6px;">
+            <i class="fa-solid fa-calculator" style="color: #007acc;"></i> Defuzzificación
+          </div>
+
+          <!-- Salida: Potencia de Refrigeración -->
+          <div class="output-meter-card" style="margin-top: 4px;">
+            <div style="font-size: 10px; color: #57606a; text-transform: uppercase; font-weight: 600;">
+              Potencia de Refrigeración:
+            </div>
+            <div class="output-value-big" id="valPotenciaOutput">-- %</div>
+
+            <div class="progress-bar-bg">
+              <div class="progress-bar-fill" id="barPotenciaFill"></div>
+            </div>
+          </div>
+
+          <!-- Gráfico de Agregación Difusa y Centroide -->
+          <div
+            style="margin-top: 10px; background: #ffffff; border: 1px solid var(--matlab-border); border-radius: 4px; padding: 6px 8px;">
+            <div
+              style="font-size: 10px; font-weight: 600; color: #334e68; display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <span id="lblCentroideGrafico" style="font-family: var(--font-mono); color: #c2410c; font-weight: 700;">z*
+                = -- %</span>
+            </div>
+            <div style="height: 125px; position: relative;">
+              <canvas id="chartAgregacionDefuzz"></canvas>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- 4. BARRA DE ESTADO INFERIOR -->
+    <div class="matlab-statusbar">
+      <div class="statusbar-left">
+        <span class="status-dot" id="statusDot"></span>
+        <span id="statusbarText">Listo | Conectado a Servidor Flask en http://localhost:5000</span>
+      </div>
+      <div class="statusbar-right">
+        <span>Estándar: ASHRAE TC 9.9</span>
+        <span>Servidores: Dell R740 / Xeon</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Script Principal de la Aplicación -->
+  <script src="/js/app.js"></script>
+</body>
+
+</html>
