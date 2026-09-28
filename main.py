@@ -12,6 +12,13 @@ directorio_raiz = os.path.dirname(os.path.abspath(__file__))
 if directorio_raiz not in sys.path:
     sys.path.insert(0, directorio_raiz)
 
+# Cargar automáticamente site-packages de .venv si existe
+import glob
+rutas_venv = glob.glob(os.path.join(directorio_raiz, ".venv", "lib", "python*", "site-packages"))
+for r in rutas_venv:
+    if r not in sys.path:
+        sys.path.insert(0, r)
+
 from backend.negocio.climatizacion_datacenter import ClimatizacionDatacenter
 from backend.controladores.controlador_api import crear_controlador_api
 

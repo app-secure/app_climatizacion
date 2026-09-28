@@ -1,166 +1,171 @@
-# GUÍA ESTRATÉGICA PARA LA DEFENSA ANTE EL INGENIERO: EXPLICACIÓN LÍNEA POR LÍNEA DEL CORE PURO
+# GUÍA ESTRATÉGICA PARA LA DEFENSA ORAL ANTE EL DOCENTE
+## Explicación del Core Simplificado basado en Librerías Científicas (`scikit-fuzzy`, `mlxtend`, `NumPy`)
 
-Esta guía está diseñada para que cualquier integrante del equipo pueda abrir los archivos de `backend/core/`, proyectar el código en pantalla y explicar exactamente qué hace cada función, fórmula y línea ante las preguntas del docente ("el ing").
+Esta guía proporciona el **guion exacto** que deben proyectar y decir ante las preguntas del ingeniero ("el docente") durante la sustentación.
 
 ---
 
-## 1. La Gran Respuesta Inicial (Para Ganar la Confianza del Docente)
+## 1. La Gran Respuesta Inicial (Justificación de Librerías)
 
 Cuando el ingeniero pregunte:
-> *"A ver, explíquenme cómo implementaron los algoritmos. ¿Usaron librerías de caja negra que hacen todo por ustedes?"*
+> *"A ver, ¿qué librerías usaron y por qué no hicieron todo desde cero?"*
 
 **Respuesta Modelo:**
-> *"Ingeniero, decidimos estructurar el backend separando un **Core Puro** (`backend/core/`) desarrollado desde cero en Python y NumPy estándar.*  
-> *No dependemos de cajas negras como `skfuzzy` o `mlxtend`. En `backend/core/` están programadas explícitamente las ecuaciones matemáticas que vimos en clase: las rectas de fusificación triangular y trapezoidal, la T-norma mínimo para el recorte de Mamdani, la agregación máxima, el centroide por integrales de Riemann, el ciclo evolutivo de 7 pasos con la ruleta vectorial de 100 casillas barajada, y las 3 fases del algoritmo Apriori con su Cobertura Mínima.*  
-> *A continuación le mostramos cada módulo en detalle."*
+> *"Ingeniero, en la práctica profesional y en investigación no se reinventa la rueda con código artesanal de cientos de líneas propenso a errores numéricos. Utilizamos las **librerías científicas estándar de la industria** reconocidas por la comunidad internacional:*  
+> *1. **`scikit-fuzzy`:** El estándar para Sistemas de Inferencia Mamdani en Python.*  
+> *2. **`mlxtend` + `pandas`:** La suite estándar de minería de datos y reglas de asociación.*  
+> *3. **`NumPy`:** Para el cómputo matricial y estocástico del Algoritmo Genético.*  
+>  
+> *Sin embargo, **no son cajas negras mágicas**: cada módulo en nuestro `backend/core/` tiene menos de 100 líneas limpias y transparentes, donde nosotros mismos configuramos los hiperparámetros, las ecuaciones de pertenencia según los datasheets de ASHRAE y Dell, el operador de Centroide y la Ruleta Vectorial de 100 casillas que usted nos enseñó en clase."*
 
 ---
 
-## 2. Explicación de la Lógica Difusa Mamdani (`backend/core/motor_difuso_puro.py`)
+## 2. Explicación de la Lógica Difusa Mamdani ([`backend/core/motor_difuso_puro.py`](file:///home/saimoljimenez/Univercidad/IA/ProyectoCLimatico/app_climatizacion/backend/core/motor_difuso_puro.py))
 
-### ¿Qué archivo abrir?
-Abrir [`backend/core/motor_difuso_puro.py`](file:///home/saimoljimenez/Univercidad/IA/ProyectoCLimatico/app_climatizacion/backend/core/motor_difuso_puro.py).
+### El código completo tiene solo ~90 líneas. Se explica en 4 bloques:
 
-### Estructura del archivo para explicar al profesor:
+#### Bloque 1: Declaración de Universos y Variables (Líneas 29 a 45)
+- **Qué mostrar en pantalla:**
+  ```python
+  universo = np.arange(minimo, maximo + (paso / 2.0), paso)
+  self.variables_entrada[nombre] = ctrl.Antecedent(universo, nombre)
+  self.variables_salida[nombre] = ctrl.Consequent(universo, nombre, defuzzify_method='centroid')
+  ```
+- **Qué decir:**
+  *"Aquí normalizamos y acotamos los universos físicos de discurso: Temperatura en Rack ($10^\circ\text{C}$ a $45^\circ\text{C}$), CPU ($0\%$ a $100\%$) y Exterior ($0^\circ\text{C}$ a $45^\circ\text{C}$). La salida se configura con el método del centroide: `defuzzify_method='centroid'`."*
 
-#### A) Clase `FuncionesPertenencia` (Líneas 23 a 95)
-- **Pregunta del Ing:** *"¿Dónde están las ecuaciones de las funciones de pertenencia?"*
-- **Qué mostrar:**
-  - `triangular(x, a, b, c)`: Mostrar que calcula la pendiente ascendente $\frac{x-a}{b-a}$ y la descendente $\frac{c-x}{c-b}$.
-  - `trapezoidal(x, a, b, c, d)`: Mostrar que programa la rampa de subida, la meseta plana donde $\mu = 1$ entre $b$ y $c$ (que modela el rango ASHRAE de $18^\circ\text{C}$ a $27^\circ\text{C}$), y la rampa de bajada.
-  - Explicar por qué usamos estas y no Gaussianas: *"Ingeniero, porque el hardware tiene límites rígidos de derating declarados en los datasheets de Dell e Intel, no comportamientos poblacionales gaussianos."*
-
-#### B) Etapa 1: Fusificación (Clase `VariableLinguistica`, líneas 98 a 135)
-- **Pregunta del Ing:** *"¿Cómo convierten la temperatura real (ej. 22 °C) a grado de verdad difuso?"*
-- **Qué mostrar:**
-  - Método `evaluar_pertenencia(nombre_termino, valor_crisp)`:
-  - Explicar que toma el valor escalar real $x$ e interpola linealmente sobre el vector del universo para devolver $\mu \in [0, 1]$.
-
-#### C) Etapa 2: Inferencia Difusa (Clase `ReglaMamdaniPura`, líneas 138 a 175)
-- **Pregunta del Ing:** *"¿Dónde evalúan el AND y cómo truncan el consecuente?"*
-- **Qué mostrar:**
-  - Método `evaluar_grado_activacion`:
-    ```python
-    alfa_conjuncion = float(np.min(grados_antecedentes))
-    return alfa_conjuncion * self.peso_confianza
-    ```
-    Explicar: *"Aquí aplicamos la T-norma de Gödel/Zadeh: el operador MÍNIMO sobre los antecedentes, multiplicado por la confianza de la regla minada por Apriori."*
-  - Truncamiento de Mamdani en `inferir_y_agregar` (Línea 235):
-    ```python
-    mf_truncada = np.minimum(alfa_activacion, mf_consecuente)
-    ```
-    Explicar: *"El grado $\alpha$ recorta (trunca) la altura máxima del conjunto difuso consecuente."*
-
-#### D) Etapa 3: Agregación de Salidas (Línea 240)
+#### Bloque 2: Funciones de Pertenencia de Hardware (Líneas 47 a 65)
 - **Qué mostrar:**
   ```python
-  curva_agregada = np.maximum.reduce(cortes_reglas)
+  mf = fuzz.trapmf(universo, parametros)  # Trapezoidal (ASHRAE / Límites Dell)
+  mf = fuzz.trimf(universo, parametros)   # Triangular (Pico de transición)
   ```
-  Explicar: *"Aplicamos la S-norma del MÁXIMO para unir todas las áreas recortadas de las reglas activas en una sola envolvente difusa."*
+- **Qué decir:**
+  *"Usamos `fuzz.trapmf` y `fuzz.trimf` porque son geometrías lineales por partes. No usamos Gaussianas porque los procesadores Intel Xeon y servidores Dell R740 tienen límites rígidos de derating declarados en datasheets, con una meseta plana de operación recomendada entre $18^\circ\text{C}$ y $24.5^\circ\text{C}$ donde $\mu = 1.0$."*
 
-#### E) Etapa 4: Defusificación por Centroide (Líneas 246 a 260)
-- **Pregunta del Ing:** *"¿Dónde está la integral del centroide?"*
+#### Bloque 3: Inferencia con Conjunción y Peso (Líneas 70 a 95)
 - **Qué mostrar:**
-  - Método `defusificar_centroide`:
-    ```python
-    momento_estatico = float(np.sum(universo * curva_agregada))
-    area_total = float(np.sum(curva_agregada))
-    centroide_z = momento_estatico / area_total
-    ```
-  - Explicar: *"Ingeniero, esta es la discretización formal de la integral continua de Riemann:*
-    $$z^* = \frac{\int z \cdot \mu(z) \, dz}{\int \mu(z) \, dz} \approx \frac{\sum z_j \cdot \mu(z_j)}{\sum \mu(z_j)}$$
-    *El numerador es el momento estático de primer orden y el denominador es el área bajo la curva. El resultado es el baricentro geométrico exacto de potencia de refrigeración."*
+  ```python
+  antecedente = (antecedente & cond)  # Operador MÍNIMO de Mamdani
+  consecuente = self.variables_salida[variable_salida][etiqueta_salida] % float(peso_confianza)
+  regla = ctrl.Rule(antecedent=antecedente, consequent=consecuente)
+  ```
+- **Qué decir:**
+  *"El operador `&` en scikit-fuzzy ejecuta la T-norma de Gödel/Zadeh: el **MÍNIMO** entre antecedentes. El operador `%` aplica la ponderación de la regla según la **Confianza** calculada por el algoritmo Apriori."*
+
+#### Bloque 4: Agregación y Defusificación por Centroide (Líneas 105 a 125)
+- **Qué mostrar:**
+  ```python
+  self.simulador.compute()
+  valor_salida = float(self.simulador.output[objetivo])
+  ```
+- **Qué decir:**
+  *"Al ejecutar `.compute()`, scikit-fuzzy realiza la unión de consecuentes mediante el operador **MÁXIMO** (Agregación) y calcula el baricentro geométrico continuo mediante el cociente de integrales discretizadas:*
+  $$z^* = \frac{\int z \cdot \mu_{\text{agregado}}(z) \, dz}{\int \mu_{\text{agregado}}(z) \, dz} = \frac{\sum z_j \cdot \mu(z_j)}{\sum \mu(z_j)}$$
+  *El resultado es un valor crisp exacto que modula la potencia de enfriamiento ($0\%$ a $100\%$)."*
 
 ---
 
-## 3. Explicación del Algoritmo A Priori (`backend/core/apriori_puro.py`)
+## 3. Explicación del Algoritmo A Priori ([`backend/core/apriori_puro.py`](file:///home/saimoljimenez/Univercidad/IA/ProyectoCLimatico/app_climatizacion/backend/core/apriori_puro.py))
 
-### ¿Qué archivo abrir?
-Abrir [`backend/core/apriori_puro.py`](file:///home/saimoljimenez/Univercidad/IA/ProyectoCLimatico/app_climatizacion/backend/core/apriori_puro.py).
+### El código completo tiene solo ~60 líneas. Se explica en 3 pasos:
 
-### Estructura para explicar al profesor:
-
-#### A) Fase 0: Cobertura Mínima (Línea 60)
-- **Pregunta del Ing:** *"¿Qué es la Fase 0 y cómo la calculan?"*
+#### Paso 1: Discretización y Codificación One-Hot (Líneas 30 a 50)
 - **Qué mostrar:**
   ```python
   cobertura_minima = math.ceil(total_transacciones * float(soporte_minimo))
+  df_binario = pd.get_dummies(df_cat, prefix_sep="=")
   ```
-  Explicar: *"Con 1500 transacciones y un soporte del 2% ($0.02$), la cobertura mínima absoluta es $\lceil 1500 \times 0.02 \rceil = 30$ transacciones. Ningún itemset que aparezca menos de 30 veces pasa a la siguiente fase."*
+- **Qué decir:**
+  *"Fase 0: Con 1500 transacciones y soporte del $2\%$ ($0.02$), la **Cobertura Mínima** es $\lceil 1500 \times 0.02 \rceil = 30$ transacciones. Luego, `pd.get_dummies` transforma los datos a una matriz binaria dispersa donde cada columna es un item `variable=valor`."*
 
-#### B) Fase 1: K-Itemsets Frecuentes (Líneas 67 a 135)
-- **Qué mostrar:**
-  - **$K=1$:** Conteo de ocurrencia de cada atributo-valor (`variable=valor`) y filtrado con `cnt >= cobertura_minima`.
-  - **$K=2$:** Generación de pares combinando variables distintas y conteo de coocurrencia en las transacciones. Poda por `cobertura_minima`.
-  - **$K=3$:** Generación de tríadas entre items supervivientes y nueva poda.
-
-#### C) Fase 2: Reglas por Confianza y Métrica Lift (Líneas 140 a 220)
-- **Pregunta del Ing:** *"¿Cómo calculan la confianza y el lift? ¿Para qué sirve el lift?"*
+#### Paso 2: Minado de K-Itemsets con mlxtend (Líneas 52 a 60)
 - **Qué mostrar:**
   ```python
-  soporte = cobertura_conjunta / total_transacciones
-  confianza = cobertura_conjunta / cobertura_antecedente
-  lift = confianza / prob_b
+  itemsets_frecuentes = mlx_apriori(df_binario, min_support=float(soporte_minimo), use_colnames=True)
   ```
-  Explicar: *"La confianza mide $P(\text{consecuente} \mid \text{antecedente})$. El Lift evalúa la correlación real. Si $\text{Lift} > 1$, la regla es ÚTIL porque la presencia del antecedente incrementa la probabilidad del consecuente. Si $\text{Lift} \le 1$, la regla es independiente o negativa y se clasifica como no útil."*
+- **Qué decir:**
+  *"Fase 1: `mlx_apriori` genera iterativamente los 1-itemsets, 2-itemsets y 3-itemsets frecuentes, podando en cada nivel todo conjunto que aparezca menos de 30 veces en la telemetría."*
+
+#### Paso 3: Reglas por Confianza y Filtrado por Lift (Líneas 62 a 105)
+- **Qué mostrar:**
+  ```python
+  tabla_reglas = association_rules(itemsets_frecuentes, metric="confidence", min_threshold=float(confianza_minima))
+  ...
+  if lift > 1.0:
+      utilidad = "ÚTIL"
+  ```
+- **Qué decir:**
+  *"Fase 2: `association_rules` genera las combinaciones $A \implies B$ que superan el umbral de confianza condicional ($40\%$). Luego filtramos con la métrica **Lift**: si $\text{Lift} > 1$, existe una correlación positiva directa y la regla se incorpora al motor difuso."*
 
 ---
 
-## 4. Explicación del Algoritmo Genético (`backend/core/genetico_puro.py`)
+## 4. Explicación del Algoritmo Genético ([`backend/core/genetico_puro.py`](file:///home/saimoljimenez/Univercidad/IA/ProyectoCLimatico/app_climatizacion/backend/core/genetico_puro.py))
 
-### ¿Qué archivo abrir?
-Abrir [`backend/core/genetico_puro.py`](file:///home/saimoljimenez/Univercidad/IA/ProyectoCLimatico/app_climatizacion/backend/core/genetico_puro.py).
+### El código completo tiene ~85 líneas estructuradas en el Ciclo de 7 Pasos:
 
-### Estructura de los 7 Pasos para explicar al profesor:
+#### 1. Población Inicial (Línea 26)
+- `generar_poblacion`: Muestrea $N=25$ cromosomas continuos dentro de $[18.0, 27.0]\text{ }^\circ\text{C}$ (norma térmica ASHRAE).
 
-#### Paso 1: Población Inicial (Línea 38)
-- `paso1_generar_poblacion_inicial`: Genera $N$ cromosomas de 4 franjas horarias dentro de $[18.0, 27.0]\text{ }^\circ\text{C}$ (norma ASHRAE).
+#### 2. Ruleta Vectorial Inversa de 100 Casillas Barajada (Líneas 29 a 65)
+- **Pregunta del Ing:** *"¿Dónde está la ruleta de 100 casillas que vimos en clase y cómo evitan la autofecundación?"*
+- **Qué mostrar:**
+  ```python
+  # 1. Inversión de aptitud para minimización de costo
+  aptitudes = (costo_max + 0.05 * rango) - costos
+  probabilidades = aptitudes / np.sum(aptitudes)
 
-#### Paso 2: Ruleta Vectorial Inversa de 100 Casillas (Líneas 50 a 115)
-- **Pregunta del Ing:** *"¿Cómo seleccionan los padres? ¿Por qué no eligen al mejor directamente?"*
-- **Qué responder:** *"Si elijo directamente al mejor, convierto el AG en una búsqueda voraz (greedy) y provoco un colapso por convergencia prematura en óptimos locales. Usamos la ruleta vectorial inversa de 100 casillas que usted enseñó en clase."*
-- **Qué mostrar en el código:**
-  1. **Inversión de aptitud para minimización:**
-     ```python
-     aptitudes_invertidas = (costo_maximo + delta_seguridad) - costos
-     ```
-     *"Al individuo con menor costo se le asigna la mayor aptitud invertida."*
-  2. **Vector discreto de 100 casillas:**
-     ```python
-     casillas_por_individuo = np.round(probabilidades * 100.0)
-     ```
-  3. **Barajado aleatorio (*Shuffling*):**
-     ```python
-     np.random.shuffle(vector_100)
-     ```
-     *"Desordenamos el vector para evitar sesgos de contigüidad espacial."*
-  4. **Prevención de la autofecundación (Líneas 100 a 110):**
-     ```python
-     while indice_p2 == indice_p1:
-         posicion_p2 = np.random.randint(0, 100)
-         indice_p2 = vector_100[posicion_p2]
-     ```
-     *"Si el segundo padre resulta idéntico al primero, reintentamos la extracción estocástica para evitar que el mismo individuo se cruce consigo mismo, lo que inhibiría el progreso evolutivo."*
+  # 2. Asignación de 100 casillas proporcionales
+  casillas = np.maximum(1, np.round(probabilidades * 100.0).astype(int))
 
-#### Pasos 3 y 4: Cruzamiento (*Crossover*) y Generación de Hijos (Líneas 120 a 145)
-- `paso3_y_4_cruzamiento`: Genera un punto de corte aleatorio $k \in [1, L-1]$ e intercambia los segmentos cromosómicos entre los dos padres para producir dos descendientes.
+  # 3. Barajado aleatorio (Shuffling)
+  np.random.shuffle(vector_100)
 
-#### Paso 5: Mutación Puntual (Líneas 148 a 160)
-- `paso5_mutacion_puntual`: Evalúa la probabilidad hiperparamétrica $P_m$ ($10\%$). Si se activa, perturba estocásticamente el setpoint térmico con ruido gaussiano acotado para inyectar diversidad genotípica y escapar de mínimos locales.
+  # 4. Extracción estocástica sin autofecundación
+  p1 = vector_100[np.random.randint(0, 100)]
+  p2 = vector_100[np.random.randint(0, 100)]
+  while p2 == p1 and intentos < 25:
+      p2 = vector_100[np.random.randint(0, 100)]
+  ```
+- **Qué decir:**
+  *"Como nuestro objetivo es minimizar el costo eléctrico, invertimos la aptitud para que el individuo más barato obtenga la mayor cantidad de casillas. Desordenamos el vector con `np.random.shuffle` para eliminar sesgos espaciales y reintentamos si $P_1 = P_2$ para prevenir la autofecundación."*
 
-#### Paso 6: Poda a N Supervivientes y Elitismo (Líneas 165 a 185)
-- `paso6_poda_supervivientes`: Funde padres y descendientes, evalúa aptitud y poda estrictamente a $N$ individuos, preservando siempre la mejor solución intacta (*elitismo*).
+#### 3 y 4. Cruzamiento (*Crossover*) por Punto de Corte (Líneas 67 a 78)
+- **Qué mostrar:**
+  ```python
+  k = np.random.randint(1, len(padre1))
+  h1 = np.concatenate([padre1[:k], padre2[k:]])
+  h2 = np.concatenate([padre2[:k], padre1[k:]])
+  ```
+- **Qué decir:**
+  *"Con probabilidad $P_c = 85\%$, se selecciona un punto de corte aleatorio $k$ y se recombinan los setpoints de ambos padres para generar dos nuevos descendientes."*
 
-#### Paso 7: Criterio de Parada (Línea 190)
-- `optimizar`: Repite el ciclo durante el número programado de generaciones y retorna los setpoints térmicos óptimos y la curva de convergencia de fitness.
+#### 5. Mutación Puntual (Líneas 80 a 87)
+- **Qué mostrar:**
+  ```python
+  if np.random.rand() < self.tasa_mutacion:
+      mutado[i] = np.clip(mutado[i] + np.random.normal(0.0, 0.6), lim_inf, lim_sup)
+  ```
+- **Qué decir:**
+  *"Con tasa $P_m = 10\%$, se perturba estocásticamente el setpoint para introducir diversidad genética y evitar quedar atrapados en mínimos locales."*
+
+#### 6 y 7. Poda a N Supervivientes, Elitismo y Parada (Líneas 95 a 125)
+- **Qué mostrar:**
+  ```python
+  candidatos = [mejor_ind_global.copy()]  # Elitismo
+  ...
+  orden = np.argsort(fit_cand)[::-1][:self.tamano_poblacion]
+  poblacion = [candidatos[i] for i in orden]  # Poda a N
+  ```
+- **Qué decir:**
+  *"Conservamos una copia exacta del mejor individuo (elitismo), evaluamos a padres e hijos y podamos estrictamente a los $N=25$ más aptos al final de cada generación."*
 
 ---
 
-## 5. Resumen de Ubicación de Archivos para la Presentación
+## 5. Tabla Resumen para la Sustentación
 
-| Algoritmo | Archivo del Core Puro | Conceptos Clave para Señalar |
-| :--- | :--- | :--- |
-| **Lógica Difusa Mamdani** | [`backend/core/motor_difuso_puro.py`](file:///home/saimoljimenez/Univercidad/IA/ProyectoCLimatico/app_climatizacion/backend/core/motor_difuso_puro.py) | Rectas de pertenencia, T-norma Mínimo, truncamiento, unión Máxima y fórmula del Centroide. |
-| **Minería A Priori** | [`backend/core/apriori_puro.py`](file:///home/saimoljimenez/Univercidad/IA/ProyectoCLimatico/app_climatizacion/backend/core/apriori_puro.py) | Fase 0 (Cobertura mínima), K-Itemsets (1, 2, 3), Confianza y clasificación analítica de Lift. |
-| **Algoritmo Genético** | [`backend/core/genetico_puro.py`](file:///home/saimoljimenez/Univercidad/IA/ProyectoCLimatico/app_climatizacion/backend/core/genetico_puro.py) | Ciclo de 7 pasos, Ruleta 100 barajada, inversión de aptitud, anti-autofecundación y mutación. |
-| **Orquestación y Negocio** | [`backend/negocio/climatizacion_datacenter.py`](file:///home/saimoljimenez/Univercidad/IA/ProyectoCLimatico/app_climatizacion/backend/negocio/climatizacion_datacenter.py) | Conexión con los estándares ASHRAE TC 9.9, servidores Dell R740 y ahorro en kWh y USD. |
+| Componente | Archivo en `backend/core/` | Librería Utilizada | Líneas |
+| :--- | :--- | :---: | :---: |
+| **Lógica Difusa Mamdani** | [`motor_difuso_puro.py`](file:///home/saimoljimenez/Univercidad/IA/ProyectoCLimatico/app_climatizacion/backend/core/motor_difuso_puro.py) | `scikit-fuzzy` | **~90 líneas** |
+| **Minería A Priori** | [`apriori_puro.py`](file:///home/saimoljimenez/Univercidad/IA/ProyectoCLimatico/app_climatizacion/backend/core/apriori_puro.py) | `mlxtend` + `pandas` | **~60 líneas** |
+| **Algoritmo Genético** | [`genetico_puro.py`](file:///home/saimoljimenez/Univercidad/IA/ProyectoCLimatico/app_climatizacion/backend/core/genetico_puro.py) | `NumPy` | **~85 líneas** |

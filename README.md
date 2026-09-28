@@ -45,6 +45,8 @@
    - 7.1. [Matriz de Trampas Comunes y Errores Conceptuales Frecuentes](#71-matriz-de-trampas-comunes-y-errores-conceptuales-frecuentes)
    - 7.2. [Cuestionario de Preguntas Tipo Ensayo para la Defensa Oral con Claves de Respuesta](#72-cuestionario-de-preguntas-tipo-ensayo-para-la-defensa-oral)
 8. [Estructura del Proyecto y Verificación de Cumplimiento Teórico](#8-estructura-del-proyecto-y-verificación-de-cumplimiento-teórico)
+9. [Guía de Flujo del Código Paso a Paso por Capas (FLUJO_DEL_CODIGO.md)](file:///home/saimoljimenez/Univercidad/IA/ProyectoCLimatico/app_climatizacion/FLUJO_DEL_CODIGO.md)
+10. [Guía Estratégica de Defensa Oral ante el Docente (guia_explicacion_docente.md)](file:///home/saimoljimenez/Univercidad/IA/ProyectoCLimatico/app_climatizacion/backend/core/guia_explicacion_docente.md)
 
 ---
 
