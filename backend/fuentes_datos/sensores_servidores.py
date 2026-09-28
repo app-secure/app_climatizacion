@@ -1,6 +1,33 @@
 import os
+import csv
 import numpy as np
-import pandas as pd
+
+try:
+    import pandas as pd
+except ImportError:
+    pd = None
+
+
+class TablaDatosLigera:
+    """Contenedor de datos ligero cuando pandas no está instalado."""
+    def __init__(self, diccionario_columnas: dict):
+        self.columnas = diccionario_columnas
+        self.nombres_columnas = list(diccionario_columnas.keys())
+        self.num_filas = len(next(iter(diccionario_columnas.values())))
+
+    def to_csv(self, ruta_archivo: str, index: bool = False):
+        with open(ruta_archivo, mode="w", newline="", encoding="utf-8") as f:
+            escritor = csv.writer(f)
+            escritor.writerow(self.nombres_columnas)
+            for i in range(self.num_filas):
+                fila = [self.columnas[col][i] for col in self.nombres_columnas]
+                escritor.writerow(fila)
+
+    def __len__(self):
+        return self.num_filas
+
+    def __getitem__(self, item):
+        return self.columnas[item]
 
 
 class SensoresServidores:
@@ -16,7 +43,7 @@ class SensoresServidores:
         directorio_actual = os.path.dirname(os.path.abspath(__file__))
         self.ruta_archivo_datos_por_defecto = os.path.join(directorio_actual, "datos.csv")
 
-    def generar_historial(self) -> pd.DataFrame:
+    def generar_historial(self):
         
         np.random.seed(self.semilla_aleatoria)
 
@@ -93,15 +120,17 @@ class SensoresServidores:
                     accion_base + ruido_aleatorio, 85.0, 100.0
                 )
 
-        tabla_datos_sensores = pd.DataFrame({
+        datos_dict = {
             "hora_del_dia_formato_24h": np.round(vector_horas_del_dia, 2),
             "porcentaje_uso_procesador": np.round(porcentaje_uso_procesador, 2),
             "temperatura_ambiental_exterior_celsius": np.round(temperatura_ambiental_exterior_celsius, 2),
             "temperatura_rack_celsius": np.round(temperatura_rack_celsius, 2),
             "potencia_sistema_enfriamiento_porcentaje": np.round(potencia_sistema_enfriamiento_porcentaje, 2)
-        })
+        }
 
-        return tabla_datos_sensores
+        if pd is not None:
+            return pd.DataFrame(datos_dict)
+        return TablaDatosLigera(datos_dict)
 
     def guardar_en_archivo_csv(self, ruta_destino_archivo_csv: str = "") -> str:
         

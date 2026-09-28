@@ -1,5 +1,5 @@
 import os
-import pandas as pd
+import csv
 from flask import Blueprint, jsonify, request
 
 
@@ -28,7 +28,8 @@ def crear_controlador_api(datacenter, ruta_archivo_sensores_csv: str) -> Bluepri
         try:
             archivo_subido.save(ruta_archivo_sensores_csv)
             nuevas_reglas = datacenter.cargar_y_minar_reglas_apriori()
-            total_registros = len(pd.read_csv(ruta_archivo_sensores_csv))
+            with open(ruta_archivo_sensores_csv, mode="r", encoding="utf-8") as f:
+                total_registros = max(0, sum(1 for _ in f) - 1)
             datacenter.sensores_servidores.numero_total_registros = total_registros
 
             return jsonify({

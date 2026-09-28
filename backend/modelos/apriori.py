@@ -1,86 +1,55 @@
-import pandas as pd
-from mlxtend.frequent_patterns import apriori as algoritmo_apriori, association_rules
+"""
+Modelo de Apriori respaldado por el Core Puro (Python estándar).
+Ejecuta la Fase 0 (Cobertura Mínima), Fase 1 (K-Itemsets) y Fase 2 (Reglas por Confianza y Lift)
+sin necesidad de paquetes externos de terceros.
+"""
+
+from ..core.apriori_puro import AprioriPuro
 
 
 class Apriori:
 
-    def discretizar_columna(self, tabla_datos: pd.DataFrame, nombre_columna: str,
-                            rangos_numericos: list, nombres_etiquetas: list) -> pd.Series:
-        return pd.cut(
-            tabla_datos[nombre_columna],
-            bins=rangos_numericos,
-            labels=nombres_etiquetas,
-            include_lowest=True
-        )
+    def __init__(self):
+        self.motor_puro = AprioriPuro()
 
-    def extraer_reglas(self, tabla_datos_categorica: pd.DataFrame,
+    def discretizar_columna(self, tabla_datos, nombre_columna: str,
+                            rangos_numericos: list, nombres_etiquetas: list):
+        if isinstance(tabla_datos, dict) or hasattr(tabla_datos, "columns"):
+            valores = list(tabla_datos[nombre_columna])
+        elif isinstance(tabla_datos, list):
+            if tabla_datos and isinstance(tabla_datos[0], (int, float)):
+                valores = tabla_datos
+            elif tabla_datos and isinstance(tabla_datos[0], dict):
+                valores = [fila[nombre_columna] for fila in tabla_datos]
+            else:
+                valores = tabla_datos
+        else:
+            valores = list(tabla_datos)
+
+        return self.motor_puro.discretizar_serie(valores, rangos_numericos, nombres_etiquetas)
+
+    def extraer_reglas(self, tabla_datos_categorica,
                        soporte_minimo: float, confianza_minima: float,
                        columna_salida: str = "") -> list:
-        datos_binarios = pd.get_dummies(tabla_datos_categorica, prefix_sep="=")
+        # Convertir a lista de diccionarios si viene como DataFrame o diccionario de columnas
+        if hasattr(tabla_datos_categorica, "to_dict"):
+            transacciones = tabla_datos_categorica.to_dict(orient="records")
+        elif isinstance(tabla_datos_categorica, dict):
+            # Formato de columnas
+            nombres = list(tabla_datos_categorica.keys())
+            num_filas = len(tabla_datos_categorica[nombres[0]])
+            transacciones = []
+            for i in range(num_filas):
+                fila = {col: tabla_datos_categorica[col][i] for col in nombres}
+                transacciones.append(fila)
+        elif isinstance(tabla_datos_categorica, list):
+            transacciones = tabla_datos_categorica
+        else:
+            transacciones = []
 
-        items_frecuentes = algoritmo_apriori(
-            datos_binarios,
-            min_support=soporte_minimo,
-            use_colnames=True
+        return self.motor_puro.extraer_reglas(
+            transacciones=transacciones,
+            soporte_minimo=soporte_minimo,
+            confianza_minima=confianza_minima,
+            columna_salida=columna_salida
         )
-
-        if items_frecuentes.empty:
-            return []
-
-        tabla_reglas = association_rules(
-            items_frecuentes,
-            metric="confidence",
-            min_threshold=confianza_minima
-        )
-
-        reglas_finales = []
-        contador = 1
-
-        for indice, fila in tabla_reglas.iterrows():
-            antecedentes = list(fila["antecedents"])
-            consecuentes = list(fila["consequents"])
-
-            if len(consecuentes) != 1:
-                continue
-
-            consecuente_texto = consecuentes[0]
-            if columna_salida and columna_salida not in consecuente_texto:
-                continue
-
-            diccionario_antecedentes = {}
-            for item in antecedentes:
-                variable, valor = item.split("=", 1)
-                diccionario_antecedentes[variable] = valor
-
-            variable_salida, valor_salida = consecuente_texto.split("=", 1)
-
-            condiciones = [f"{var} is {val}" for var, val in diccionario_antecedentes.items()]
-            texto_regla = f"If {' and '.join(condiciones)} then {variable_salida} is {valor_salida}"
-
-            soporte = round(float(fila["support"]), 4)
-            confianza = round(float(fila["confidence"]), 4)
-            lift = round(float(fila["lift"]), 4)
-
-            if lift > 1.0:
-                utilidad = "ÚTIL"
-            elif lift == 1.0:
-                utilidad = "INDEPENDIENTE"
-            else:
-                utilidad = "NO ÚTIL"
-
-            reglas_finales.append({
-                "identificador": contador,
-                "nombre": f"regla_{contador}",
-                "texto_regla": texto_regla,
-                "antecedentes": diccionario_antecedentes,
-                "variable_consecuente": variable_salida,
-                "etiqueta_consecuente": valor_salida,
-                "soporte": soporte,
-                "confianza": confianza,
-                "peso": confianza,
-                "lift": lift,
-                "utilidad": utilidad
-            })
-            contador += 1
-
-        return reglas_finales
