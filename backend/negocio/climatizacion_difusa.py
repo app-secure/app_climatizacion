@@ -34,7 +34,6 @@ class ClimatizacionDifusa:
             "temperatura_rack", "CRITICA", [29.5, 31.0, 45.0, 45.0]
         )
 
-        # Entrada 2: Porcentaje de Uso de CPU (%)
         self.controlador_difuso.agregar_variable_entrada(
             nombre_variable="uso_cpu",
             valor_minimo=0.0,
@@ -51,7 +50,6 @@ class ClimatizacionDifusa:
             "uso_cpu", "ALTO", [65.0, 80.0, 100.0, 100.0]
         )
 
-        # Entrada 3: Temperatura Ambiental Exterior (°C)
         self.controlador_difuso.agregar_variable_entrada(
             nombre_variable="temperatura_exterior",
             valor_minimo=0.0,
@@ -68,7 +66,6 @@ class ClimatizacionDifusa:
             "temperatura_exterior", "CALIDO", [23.0, 28.0, 45.0, 45.0]
         )
 
-        # Salida: Potencia de Refrigeración Requerida (%)
         self.controlador_difuso.agregar_variable_salida(
             nombre_variable="potencia_enfriamiento",
             valor_minimo=0.0,
@@ -90,9 +87,7 @@ class ClimatizacionDifusa:
         )
 
     def cargar_reglas(self, lista_reglas_minadas: list):
-        """
-        Carga las reglas minadas por Apriori en el motor difuso y lo compila.
-        """
+        
         self.controlador_difuso.limpiar_reglas()
 
         variable_rack = self.controlador_difuso.variables_entrada["temperatura_rack"]
@@ -137,10 +132,7 @@ class ClimatizacionDifusa:
 
     def evaluar_punto_operacion(self, temperatura_rack: float, porcentaje_cpu: float,
                                 temperatura_exterior: float) -> dict:
-        """
-        Evalúa en tiempo real las entradas en el motor difuso Mamdani y
-        retorna estrictamente la salida defuzzificada (Potencia de Refrigeración %).
-        """
+       
         entradas_evaluacion = {
             "temperatura_rack": float(temperatura_rack),
             "uso_cpu": float(porcentaje_cpu),
