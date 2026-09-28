@@ -46,18 +46,27 @@ class OptimizacionEnergetica:
                 "temperatura_exterior": temp_ext_actual
             })
 
+            # Se calcula la eficiencia energética del chiller según la temperatura objetivo y exterior
             ganancia_por_temperatura_objetivo = 0.24 * (temperatura_objetivo - self.TEMPERATURA_BASE_ASHRAE_CELSIUS)
             penalizacion_climatica_exterior = 0.04 * (temp_ext_actual - 20.0)
             coeficiente_desempeno_cop = np.clip(2.85 + ganancia_por_temperatura_objetivo - penalizacion_climatica_exterior, 2.2, 5.5)
-
+            
+            # Se calcula la potencia térmica requerida
             potencia_termica_requerida_kw = 140.0 * (potencia_porcentaje / 100.0)
+            
+            # Se calcula la potencia eléctrica consumida
             potencia_electrica_consumida_kw = potencia_termica_requerida_kw / coeficiente_desempeno_cop
+            
+            # Se calcula el consumo de la franja
             consumo_franja_kwh = potencia_electrica_consumida_kw * duracion_horas_franja
+            
+            # Se suma al consumo total
             consumo_total_kilovatios_hora += consumo_franja_kwh
 
             temperatura_rack_resultante = temperatura_objetivo + (cpu_actual / 100.0) * 2.2
             lista_temperaturas_resultantes.append(round(temperatura_rack_resultante, 2))
 
+            # Se calcula la penalización térmica
             if temperatura_rack_resultante > self.LIMITE_CRITICO_SERVIDOR_DELL_R740_CELSIUS:
                 penalizacion_termica_total += 80.0 * (temperatura_rack_resultante - self.LIMITE_CRITICO_SERVIDOR_DELL_R740_CELSIUS) ** 2
             elif temperatura_rack_resultante > self.LIMITE_SUPERIOR_RECOMENDADO_ASHRAE_CELSIUS:
