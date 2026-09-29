@@ -79,34 +79,59 @@ class AlgoritmoGenetico:
         self.probabilidad_mutacion = float(probabilidad_mutacion)
 
     # --------------------------------------------------------------------------
-    # PASO 1: Población inicial
+    # PASO 1: Población inicial con restricción dura en genes críticos
     # --------------------------------------------------------------------------
     def generar_poblacion_inicial(self, cantidad_individuos: int, longitud_cromosoma: int = 36) -> list:
         """
-        Genera N individuos con 36 genes aleatorios enteros en {0, 1, 2, 3}.
+        Genera N individuos con 36 genes aleatorios enteros.
+        Genes 0-26: valores aleatorios en {0, 1, 2, 3}.
+        Genes 27-35 (temperatura_rack == 'CRITICA'): restricción dura en {2, 3} (ALTA o MAXIMA).
+        Las 9 secuencias de rack (BAJA -> OPTIMA -> ALTA -> CRITICA) se inicializan explorando
+        combinaciones no decrecientes para arrancar con validez termodinámica.
         """
         poblacion = []
         for _ in range(cantidad_individuos):
-            individuo = [random.randint(0, 3) for _ in range(longitud_cromosoma)]
-            poblacion.append(individuo)
+            ind = [0] * longitud_cromosoma
+            for c in range(3):       # 0: BAJO, 1: MEDIO, 2: ALTO
+                for e in range(3):   # 0: FRIO, 1: TEMPLADO, 2: CALIDO
+                    g_baja = random.choice([0, 1]) if c == 0 else random.choice([0, 1, 2])
+                    g_optima = random.randint(g_baja, max(g_baja, random.choice([1, 2])))
+                    g_alta = random.randint(g_optima, 3)
+                    g_critica = random.randint(max(g_alta, 2), 3)
+
+                    ind[0 * 9 + c * 3 + e] = g_baja
+                    ind[1 * 9 + c * 3 + e] = g_optima
+                    ind[2 * 9 + c * 3 + e] = g_alta
+                    ind[3 * 9 + c * 3 + e] = g_critica
+            poblacion.append(ind)
         return poblacion
 
     # --------------------------------------------------------------------------
-    # PASO 2: Evaluación con caché
+    # PASO 2: Evaluación con escalamiento relativo de aptitud y caché
     # --------------------------------------------------------------------------
     def evaluar_poblacion(self, poblacion: list, funcion_evaluacion, cache_evaluaciones: dict) -> list:
         """
-        Calcula la aptitud de cada individuo. Recalcula SOLO para hijos o mutados no cacheados.
+        Calcula la aptitud de cada individuo aplicando escalamiento relativo respecto a la población:
+          aptitud_i = max(0.001, (costo_max - costo_i) + (costo_max - costo_min) * 0.1)
+        Recalcula la simulación SOLO para individuos no cacheados.
         """
-        aptitudes = []
+        costos = []
         for individuo in poblacion:
             clave_genotipo = tuple(individuo)
-            if clave_genotipo in cache_evaluaciones:
-                aptitud, _ = cache_evaluaciones[clave_genotipo]
-            else:
-                aptitud, detalles = funcion_evaluacion(individuo)
-                cache_evaluaciones[clave_genotipo] = (aptitud, detalles)
-            aptitudes.append(aptitud)
+            if clave_genotipo not in cache_evaluaciones:
+                _, detalles = funcion_evaluacion(individuo)
+                cache_evaluaciones[clave_genotipo] = detalles
+            costo_total_i = float(cache_evaluaciones[clave_genotipo]["costo_total"])
+            costos.append(costo_total_i)
+
+        costo_max = float(max(costos))
+        costo_min = float(min(costos))
+        delta = (costo_max - costo_min) * 0.1
+
+        aptitudes = [
+            max(0.001, (costo_max - c) + delta)
+            for c in costos
+        ]
         return aptitudes
 
     # --------------------------------------------------------------------------
@@ -114,7 +139,7 @@ class AlgoritmoGenetico:
     # --------------------------------------------------------------------------
     def seleccion_por_ruleta(self, poblacion: list, aptitudes: list) -> tuple:
         """
-        Selección de 2 padres mediante ruleta proporcional a la aptitud.
+        Selección de 2 padres mediante ruleta proporcional a la aptitud escalada.
         Cada individuo tiene probabilidad proporcional a su aptitud (todos tienen alguna probabilidad).
         """
         suma_aptitudes = float(sum(aptitudes))
@@ -135,6 +160,7 @@ class AlgoritmoGenetico:
     def cruce_un_punto(self, padre1: list, padre2: list) -> tuple:
         """
         Corte aleatorio entre el gen 1 y 35, intercambia colas y genera 2 hijos.
+        Como los genes 27-35 de ambos padres son >= 2, los hijos heredan esa restricción.
         """
         longitud = len(padre1)
         punto_corte = random.randint(1, longitud - 1)
@@ -143,13 +169,15 @@ class AlgoritmoGenetico:
         return hijo1, hijo2
 
     # --------------------------------------------------------------------------
-    # PASO 5: Mutación como en clase
+    # PASO 5: Mutación como en clase con acotamiento crítico
     # --------------------------------------------------------------------------
     def mutacion(self, poblacion_acumulada: list, probabilidad_mutacion: float):
         """
         a) Se lanza un número aleatorio para decidir SI hay mutación con probabilidad fija.
         b) Si hay, se elige al azar CUÁL individuo muta entre todos los existentes.
-        c) Se elige al azar CUÁL gen cambia y recibe un valor nuevo aleatorio entre 0 y 3.
+        c) Se elige al azar CUÁL gen cambia:
+           - Si el índice es >= 27 (CRITICA): muta exclusivamente entre {2, 3}.
+           - Si el índice es < 27: muta en el rango general {0, 1, 2, 3}.
         """
         if random.random() < probabilidad_mutacion and poblacion_acumulada:
             indice_individuo = random.randrange(len(poblacion_acumulada))
@@ -158,22 +186,40 @@ class AlgoritmoGenetico:
             indice_gen = random.randrange(len(individuo_a_mutar))
             valor_actual = individuo_a_mutar[indice_gen]
 
-            posibles_valores = [v for v in [0, 1, 2, 3] if v != valor_actual]
-            individuo_a_mutar[indice_gen] = random.choice(posibles_valores)
+            if indice_gen >= 27:
+                # Restricción dura en estado crítico: solo permuta entre {2, 3}
+                posibles_valores = [v for v in [2, 3] if v != valor_actual]
+            else:
+                posibles_valores = [v for v in [0, 1, 2, 3] if v != valor_actual]
 
+            individuo_a_mutar[indice_gen] = random.choice(posibles_valores)
             poblacion_acumulada[indice_individuo] = individuo_a_mutar
 
     # --------------------------------------------------------------------------
-    # PASO 6: Selección de sobrevivientes eliminando al azar hasta tamaño N
+    # PASO 6: Selección de sobrevivientes con Elitismo de 1 individuo
     # --------------------------------------------------------------------------
     def seleccion_sobrevivientes(self, poblacion_acumulada: list, aptitudes_acumuladas: list, tamano_n: int):
         """
-        Vuelve al tamaño N eliminando individuos AL AZAR (incluso hijos o el mejor de la ronda).
+        Vuelve al tamaño N eliminando individuos AL AZAR, asegurando elitismo de 1 individuo:
+        se preserva siempre intacto al mejor individuo de la ronda actual antes de descartar al azar.
         """
-        while len(poblacion_acumulada) > tamano_n:
+        if len(poblacion_acumulada) <= tamano_n:
+            return
+
+        # Elitismo: aislar al mejor individuo para que nunca sea eliminado
+        indice_mejor = int(np.argmax(aptitudes_acumuladas))
+        mejor_individuo = poblacion_acumulada.pop(indice_mejor)
+        mejor_aptitud = aptitudes_acumuladas.pop(indice_mejor)
+
+        # Reducir el resto de la población al azar hasta tamano_n - 1
+        while len(poblacion_acumulada) > (tamano_n - 1):
             indice_a_eliminar = random.randrange(len(poblacion_acumulada))
             del poblacion_acumulada[indice_a_eliminar]
             del aptitudes_acumuladas[indice_a_eliminar]
+
+        # Reincorporar al individuo élite
+        poblacion_acumulada.append(mejor_individuo)
+        aptitudes_acumuladas.append(mejor_aptitud)
 
     # --------------------------------------------------------------------------
     # PASO 7: Ciclo evolutivo completo y parada
@@ -186,11 +232,12 @@ class AlgoritmoGenetico:
         poblacion = self.generar_poblacion_inicial(self.tamano_poblacion, longitud_cromosoma=36)
         aptitudes = self.evaluar_poblacion(poblacion, funcion_evaluacion, cache_evaluaciones)
 
-        # Guardar la mejor solución histórica (PROPUESTA)
-        indice_mejor = int(np.argmax(aptitudes))
-        mejor_aptitud_historica = aptitudes[indice_mejor]
-        mejor_individuo_historico = list(poblacion[indice_mejor])
-        _, mejores_detalles_historicos = cache_evaluaciones[tuple(mejor_individuo_historico)]
+        # Determinar y registrar el mejor individuo inicial por mínimo costo total
+        costos_iniciales = [cache_evaluaciones[tuple(ind)]["costo_total"] for ind in poblacion]
+        indice_mejor_init = int(np.argmin(costos_iniciales))
+        mejor_individuo_historico = list(poblacion[indice_mejor_init])
+        mejores_detalles_historicos = cache_evaluaciones[tuple(mejor_individuo_historico)]
+        mejor_costo_historico = float(mejores_detalles_historicos["costo_total"])
 
         historial_mejor_aptitud = []
         historial_promedio_aptitud = []
@@ -204,32 +251,36 @@ class AlgoritmoGenetico:
             hijo1, hijo2 = self.cruce_un_punto(padre1, padre2)
             poblacion.extend([hijo1, hijo2])
 
-            # Paso 5: Mutación según probabilidad fija
+            # Paso 5: Mutación con acotamiento de genes críticos
             self.mutacion(poblacion, self.probabilidad_mutacion)
 
-            # Paso 2 (continuación): Evaluar población con caché
+            # Paso 2 (continuación): Evaluar población con aptitud escalada relativa
             aptitudes = self.evaluar_poblacion(poblacion, funcion_evaluacion, cache_evaluaciones)
 
-            # Actualizar mejor histórico ANTES de eliminar sobrevivientes al azar
-            indice_mejor_actual = int(np.argmax(aptitudes))
-            if aptitudes[indice_mejor_actual] > mejor_aptitud_historica:
-                mejor_aptitud_historica = aptitudes[indice_mejor_actual]
-                mejor_individuo_historico = list(poblacion[indice_mejor_actual])
-                _, mejores_detalles_historicos = cache_evaluaciones[tuple(mejor_individuo_historico)]
+            # Actualizar mejor histórico si se encuentra un costo inferior
+            for ind in poblacion:
+                c = float(cache_evaluaciones[tuple(ind)]["costo_total"])
+                if c < mejor_costo_historico:
+                    mejor_costo_historico = c
+                    mejor_individuo_historico = list(ind)
+                    mejores_detalles_historicos = cache_evaluaciones[tuple(ind)]
 
-            # Paso 6: Selección de sobrevivientes eliminando al azar hasta tamaño N
+            # Paso 6: Selección de sobrevivientes al azar con preservación del élite
             self.seleccion_sobrevivientes(poblacion, aptitudes, self.tamano_poblacion)
 
-            costo_mejor = mejores_detalles_historicos.get("costo_total", 0.0)
-            historial_mejor_aptitud.append(round(float(mejor_aptitud_historica), 6))
+            # Registrar series históricas
+            historial_mejor_aptitud.append(round(float(max(aptitudes)), 6))
             historial_promedio_aptitud.append(round(float(np.mean(aptitudes)), 6))
-            historial_mejor_costo.append(round(float(costo_mejor), 2))
+            historial_mejor_costo.append(round(float(mejor_costo_historico), 2))
+
+        mejor_aptitud_retorno = float(mejores_detalles_historicos.get("aptitud", 1.0 / (1.0 + mejor_costo_historico)))
 
         return {
             "mejor_tabla_reglas": mejor_individuo_historico,
-            "mejor_aptitud": mejor_aptitud_historica,
+            "mejor_aptitud": mejor_aptitud_retorno,
             "historial_mejor": historial_mejor_aptitud,
             "historial_promedio": historial_promedio_aptitud,
             "historial_convergencia": historial_mejor_costo,
             "detalles_solucion": mejores_detalles_historicos
         }
+

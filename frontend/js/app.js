@@ -661,16 +661,14 @@ const app = {
   async ejecutarAlgoritmoGenetico() {
     const poblacion = parseInt(document.getElementById("gaPoblacion").value) || 25;
     const generaciones = parseInt(document.getElementById("gaGeneraciones").value) || 25;
-    const tasaCrucePct = parseFloat(document.getElementById("gaTasaCruce")?.value) || 85.0;
-    const tasaMutacionPct = parseFloat(document.getElementById("gaTasaMutacion")?.value) || 10.0;
-    const tasaCruce = Math.max(0.1, Math.min(0.99, tasaCrucePct / 100.0));
+    const tasaMutacionPct = parseFloat(document.getElementById("gaTasaMutacion")?.value) || 20.0;
     const tasaMutacion = Math.max(0.01, Math.min(0.5, tasaMutacionPct / 100.0));
     const tempFija = parseFloat(document.getElementById("gaTempFija")?.value) || 18.0;
 
     const btn = document.getElementById("btnEjecutarGA");
     btn.disabled = true;
     btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Optimizando...`;
-    this.actualizarStatus(`Ejecutando GA: Población ${poblacion}, Gen ${generaciones}, Cruce ${(tasaCruce * 100).toFixed(0)}%, Mutación ${(tasaMutacion * 100).toFixed(0)}%...`, true);
+    this.actualizarStatus(`Ejecutando GA: Población ${poblacion}, Gen ${generaciones}, Mutación ${(tasaMutacion * 100).toFixed(0)}%...`, true);
 
     try {
       const res = await fetch("/api/optimizar-genetico", {
@@ -679,7 +677,6 @@ const app = {
         body: JSON.stringify({
           poblacion,
           generaciones,
-          tasa_cruce: tasaCruce,
           tasa_mutacion: tasaMutacion,
           temperatura_fija: tempFija
         })

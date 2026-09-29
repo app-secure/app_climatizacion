@@ -199,7 +199,27 @@ class OptimizacionEnergetica:
             historial_temperaturas.append(round(float(temp_actual), 2))
             historial_potencias.append(round(float(potencia_enfriamiento), 1))
 
-        costo_total = costo_electrico_acumulado + penalizacion_termica_acumulada
+        # Verificación de monotonía en la tabla de 36 reglas:
+        # Se recorren los 3 niveles de CPU (c) y los 3 niveles de Temperatura Exterior (e).
+        # Para cada combinación fija de (CPU, T_ext), se verifica que la potencia no decrezca
+        # al aumentar el nivel térmico de rack: BAJA -> OPTIMA -> ALTA -> CRITICA.
+        violaciones_monotonia = 0
+        for c in range(3):       # 0: BAJO, 1: MEDIO, 2: ALTO
+            for e in range(3):   # 0: FRIO, 1: TEMPLADO, 2: CALIDO
+                g_baja = tabla_de_reglas[0 * 9 + c * 3 + e]
+                g_optima = tabla_de_reglas[1 * 9 + c * 3 + e]
+                g_alta = tabla_de_reglas[2 * 9 + c * 3 + e]
+                g_critica = tabla_de_reglas[3 * 9 + c * 3 + e]
+
+                if g_optima < g_baja:
+                    violaciones_monotonia += 1
+                if g_alta < g_optima:
+                    violaciones_monotonia += 1
+                if g_critica < g_alta:
+                    violaciones_monotonia += 1
+
+        penalizacion_monotonia = violaciones_monotonia * 5.0
+        costo_total = costo_electrico_acumulado + penalizacion_termica_acumulada + penalizacion_monotonia
         aptitud = 1.0 / (1.0 + costo_total)
 
         detalles = {
@@ -208,6 +228,8 @@ class OptimizacionEnergetica:
             "costo_diario": round(float(costo_electrico_acumulado), 2),
             "consumo_kwh": round(float(consumo_kwh_acumulado), 2),
             "penalizacion": round(float(penalizacion_termica_acumulada), 2),
+            "violaciones_monotonia": int(violaciones_monotonia),
+            "penalizacion_monotonia": round(float(penalizacion_monotonia), 2),
             "temp_maxima": round(float(max(historial_temperaturas)), 2),
             "temp_minima": round(float(min(historial_temperaturas)), 2),
             "temp_promedio": round(float(np.mean(historial_temperaturas)), 2),
@@ -339,6 +361,8 @@ class OptimizacionEnergetica:
             "consumo_kwh_estandar": detalles_estandar["consumo_kwh"],
             "penalizacion_optimizada": detalles_opt["penalizacion"],
             "penalizacion_estandar": detalles_estandar["penalizacion"],
+            "violaciones_monotonia": detalles_opt.get("violaciones_monotonia", 0),
+            "penalizacion_monotonia": detalles_opt.get("penalizacion_monotonia", 0.0),
             "ahorro_kwh_diario": ahorro_kwh_diario,
             "ahorro_diario": ahorro_diario_dolares,
             "porcentaje_ahorro": porcentaje_ahorro,
