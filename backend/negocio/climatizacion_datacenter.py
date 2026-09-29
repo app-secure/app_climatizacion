@@ -6,12 +6,31 @@ warnings.simplefilter("ignore")
 
 from ..fuentes_datos.sensores_servidores import SensoresServidores
 from .climatizacion_difusa import ClimatizacionDifusa
-from .mineria_reglas import MineriaReglas
 from .optimizacion_energetica import OptimizacionEnergetica
+
+# ==============================================================================
+# TABLA HEURÍSTICA SIMPLE POR DEFECTO [PROPUESTA]
+# Tabla base de 36 reglas según sentido común termodinámico utilizada al iniciar
+# el servidor, antes de ejecutar la optimización genética.
+# 0: MINIMA, 1: MEDIA, 2: ALTA, 3: MAXIMA
+# ==============================================================================
+TABLA_REGLAS_POR_DEFECTO = [
+    # T_rack: BAJA (CPU: Bajo, Medio, Alto x T_ext: Frio, Temp, Cal)
+    0, 0, 0,  0, 0, 1,  0, 1, 1,
+    # T_rack: OPTIMA (CPU: Bajo, Medio, Alto x T_ext: Frio, Temp, Cal)
+    0, 0, 1,  1, 1, 2,  1, 2, 2,
+    # T_rack: ALTA (CPU: Bajo, Medio, Alto x T_ext: Frio, Temp, Cal)
+    1, 1, 2,  2, 2, 3,  2, 3, 3,
+    # T_rack: CRITICA (CPU: Bajo, Medio, Alto x T_ext: Frio, Temp, Cal)
+    2, 3, 3,  3, 3, 3,  3, 3, 3
+]
 
 
 class ClimatizacionDatacenter:
-    
+    """
+    Controlador principal del sistema de climatización inteligente.
+    Coordina el controlador difuso activo Mamdani y la optimización genética.
+    """
 
     def __init__(self, ruta_archivo_sensores_csv: str = None):
         if not ruta_archivo_sensores_csv:
@@ -24,35 +43,29 @@ class ClimatizacionDatacenter:
             self.sensores_servidores.guardar_en_archivo_csv(self.ruta_archivo_sensores_csv)
 
         self.climatizacion_difusa = ClimatizacionDifusa()
-        self.mineria_reglas = MineriaReglas()
         self.optimizacion_energetica = OptimizacionEnergetica(
             controlador_difuso=self.climatizacion_difusa.controlador_difuso
         )
 
         self.lista_reglas_activas = []
 
+        # Paso 2: Cargar tabla heurística por defecto al arrancar el sistema [PROPUESTA]
+        self.cargar_tabla_reglas_controlador(TABLA_REGLAS_POR_DEFECTO)
+
     @property
     def controlador_difuso(self):
         return self.climatizacion_difusa.controlador_difuso
 
-    def cargar_y_minar_reglas_apriori(self, soporte_minimo: float = None,
-                                      confianza_minima: float = None) -> list:
-      
-        reglas_minadas = self.mineria_reglas.minar_reglas_desde_archivo(
-            ruta_archivo_csv=self.ruta_archivo_sensores_csv,
-            soporte_minimo=soporte_minimo,
-            confianza_minima=confianza_minima
-        )
-
-        if not reglas_minadas:
-            raise ValueError(
-                f"No se generaron reglas con soporte={soporte_minimo or 0.02} y confianza={confianza_minima or 0.40}. "
-                "Prueba con valores más bajos (ej. Soporte: 0.02, Confianza: 0.40)."
-            )
-
-        self.climatizacion_difusa.cargar_reglas(reglas_minadas)
-        self.lista_reglas_activas = reglas_minadas
-        return reglas_minadas
+    def cargar_tabla_reglas_controlador(self, tabla_36_genes: list) -> list:
+        """
+        Carga una tabla de 36 reglas en el controlador difuso activo.
+        Al arrancar carga la tabla heurística por defecto, y tras la optimización
+        genética carga la mejor solución encontrada para sincronizar /api/inferencia
+        y /api/superficie-3d.
+        """
+        reglas_descriptivas = self.climatizacion_difusa.cargar_desde_tabla_genes(tabla_36_genes)
+        self.lista_reglas_activas = reglas_descriptivas
+        return reglas_descriptivas
 
     def evaluar_punto_operacion(self, temperatura_rack: float, porcentaje_cpu: float,
                                 temperatura_exterior: float) -> dict:
@@ -76,13 +89,18 @@ class ClimatizacionDatacenter:
                                        tasa_cruce: float = None,
                                        tasa_mutacion: float = None,
                                        temperatura_fija: float = 18.0) -> dict:
-        return self.optimizacion_energetica.ejecutar_optimizacion(
+        resultado = self.optimizacion_energetica.ejecutar_optimizacion(
             tamano_poblacion=tamano_poblacion,
             numero_generaciones=numero_generaciones,
             tasa_cruce=tasa_cruce,
             tasa_mutacion=tasa_mutacion,
             temperatura_fija=temperatura_fija
         )
+        # Paso 2: Sincronizar el controlador difuso activo con la mejor tabla de reglas evolucionada
+        if "mejor_tabla_reglas" in resultado:
+            self.cargar_tabla_reglas_controlador(resultado["mejor_tabla_reglas"])
+        return resultado
+
 
     def evaluar_temperatura_fija(self, temperatura_fija: float = 18.0) -> dict:
         detalles = self.optimizacion_energetica.simular_termostato_fijo(temperatura_fija)

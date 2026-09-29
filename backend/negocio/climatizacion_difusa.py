@@ -89,9 +89,63 @@ class ClimatizacionDifusa:
             "potencia_enfriamiento", "MAXIMA", [80.0, 88.0, 100.0, 100.0]
         )
 
+    def cargar_desde_tabla_genes(self, tabla_36_genes: list) -> list:
+        """
+        Carga y compila en el controlador difuso las 36 reglas correspondientes
+        al cromosoma de genes enteros (0: MINIMA, 1: MEDIA, 2: ALTA, 3: MAXIMA).
+        Retorna la lista de diccionarios descriptivos de cada regla para la API y la UI.
+        """
+        import itertools
+        self.controlador_difuso.limpiar_reglas()
+
+        variable_rack = self.controlador_difuso.variables_entrada["temperatura_rack"]
+        variable_cpu = self.controlador_difuso.variables_entrada["uso_cpu"]
+        variable_exterior = self.controlador_difuso.variables_entrada["temperatura_exterior"]
+        variable_enfriamiento = self.controlador_difuso.variables_salida["potencia_enfriamiento"]
+
+        etiquetas_salida = ["MINIMA", "MEDIA", "ALTA", "MAXIMA"]
+        antecedentes_36 = list(itertools.product(
+            ["BAJA", "OPTIMA", "ALTA", "CRITICA"],
+            ["BAJO", "MEDIO", "ALTO"],
+            ["FRIO", "TEMPLADO", "CALIDO"]
+        ))
+
+        reglas_descriptivas = []
+        for idx, ((r_rack, r_cpu, r_ext), gen_salida) in enumerate(zip(antecedentes_36, tabla_36_genes), start=1):
+            etiqueta_salida = etiquetas_salida[int(gen_salida)]
+            condicion = variable_rack[r_rack] & variable_cpu[r_cpu] & variable_exterior[r_ext]
+            consecuente = variable_enfriamiento[etiqueta_salida]
+
+            self.controlador_difuso.agregar_regla(condicion, consecuente, peso=1.0)
+
+            texto_regla = (
+                f"If temperatura_rack is {r_rack} and uso_cpu is {r_cpu} and "
+                f"temperatura_exterior is {r_ext} then potencia_enfriamiento is {etiqueta_salida}"
+            )
+            reglas_descriptivas.append({
+                "identificador": idx,
+                "nombre": f"regla_{idx}",
+                "texto_regla": texto_regla,
+                "antecedentes": {
+                    "temperatura_rack": r_rack,
+                    "uso_cpu": r_cpu,
+                    "temperatura_exterior": r_ext
+                },
+                "variable_consecuente": "potencia_enfriamiento",
+                "etiqueta_consecuente": etiqueta_salida,
+                "soporte": 1.0,
+                "confianza": 1.0,
+                "peso": 1.0,
+                "lift": 1.0,
+                "utilidad": "ÚTIL"
+            })
+
+        self.controlador_difuso.compilar_sistema()
+        return reglas_descriptivas
+
     def cargar_reglas(self, lista_reglas_minadas: list):
         """
-        Carga las reglas minadas por Apriori en el motor difuso y lo compila.
+        Carga una lista de reglas descriptivas en el motor difuso y lo compila.
         """
         self.controlador_difuso.limpiar_reglas()
 
@@ -125,15 +179,16 @@ class ClimatizacionDifusa:
 
             etiqueta_consecuente = regla_info["etiqueta_consecuente"]
             clausula_consecuente = variable_enfriamiento[etiqueta_consecuente]
-            factor_confianza = float(regla_info["confianza"])
+            peso = float(regla_info.get("peso", regla_info.get("confianza", 1.0)))
 
             self.controlador_difuso.agregar_regla(
                 condicion_antecedente_unificada,
                 clausula_consecuente,
-                peso_confianza=factor_confianza
+                peso=peso
             )
 
         self.controlador_difuso.compilar_sistema()
+
 
     def evaluar_punto_operacion(self, temperatura_rack: float, porcentaje_cpu: float,
                                 temperatura_exterior: float) -> dict:

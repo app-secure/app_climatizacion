@@ -102,14 +102,15 @@ class ControladorDifuso:
         self.sistema_control_compilado = None
         self.simulador_control_activo = None
 
-    def agregar_regla(self, clausula_antecedente, clausula_consecuente, peso_confianza: float):
-        clausula_consecuente_ponderada = clausula_consecuente % float(peso_confianza)
+    def agregar_regla(self, clausula_antecedente, clausula_consecuente, peso: float = 1.0, peso_confianza: float = None):
+        valor_peso = float(peso_confianza) if peso_confianza is not None else float(peso)
         regla_construida = ctrl.Rule(
             antecedent=clausula_antecedente,
-            consequent=clausula_consecuente_ponderada
+            consequent=clausula_consecuente
         )
-        regla_construida.weight = float(peso_confianza)
+        regla_construida.weight = valor_peso
         self.lista_reglas_difusas.append(regla_construida)
+
 
     def agregar_regla_por_nombres(self, condiciones_antecedentes: dict, variable_salida: str,
                                   etiqueta_salida: str, peso_confianza: float,

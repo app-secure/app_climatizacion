@@ -41,4 +41,5 @@ def abrir_navegador_automaticamente():
 if __name__ == "__main__":
     print(" Servidor activo en: http://localhost:5000")
     Timer(1.2, abrir_navegador_automaticamente).start()
-    aplicacion_flask.run(host="0.0.0.0", port=5000, debug=False)
+    aplicacion_flask.run(host="0.0.0.0", port=5000, debug=False, threaded=True)
+

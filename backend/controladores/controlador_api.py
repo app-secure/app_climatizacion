@@ -27,15 +27,15 @@ def crear_controlador_api(datacenter, ruta_archivo_sensores_csv: str) -> Bluepri
 
         try:
             archivo_subido.save(ruta_archivo_sensores_csv)
-            nuevas_reglas = datacenter.cargar_y_minar_reglas_apriori()
+            datacenter.optimizacion_energetica.perfil_96_pasos = datacenter.optimizacion_energetica._cargar_perfil_96_pasos()
             total_registros = len(pd.read_csv(ruta_archivo_sensores_csv))
             datacenter.sensores_servidores.numero_total_registros = total_registros
 
             return jsonify({
                 "mensaje": f"Dataset '{archivo_subido.filename}' cargado exitosamente ({total_registros} registros).",
                 "total_registros": total_registros,
-                "total_reglas": len(nuevas_reglas),
-                "reglas": nuevas_reglas
+                "total_reglas": len(datacenter.lista_reglas_activas),
+                "reglas": datacenter.lista_reglas_activas
             })
         except Exception as e:
             return jsonify({"error": f"Error al procesar el archivo CSV: {str(e)}"}), 500
@@ -43,41 +43,13 @@ def crear_controlador_api(datacenter, ruta_archivo_sensores_csv: str) -> Bluepri
     @controlador.route("/generar-dataset", methods=["POST"])
     def regenerar_dataset_sensores():
         datacenter.sensores_servidores.guardar_en_archivo_csv(ruta_archivo_sensores_csv)
-        nuevas_reglas = datacenter.cargar_y_minar_reglas_apriori()
+        datacenter.optimizacion_energetica.perfil_96_pasos = datacenter.optimizacion_energetica._cargar_perfil_96_pasos()
         return jsonify({
             "mensaje": "Historial de 1500 mediciones generado exitosamente en backend/fuentes_datos/datos.csv.",
             "total_registros": datacenter.sensores_servidores.numero_total_registros,
-            "total_reglas": len(nuevas_reglas)
+            "total_reglas": len(datacenter.lista_reglas_activas)
         })
 
-    @controlador.route("/minar-apriori", methods=["POST"])
-    def ejecutar_minado_reglas_apriori():
-        datos_peticion = request.get_json() or {}
-        try:
-            soporte_minimo = float(datos_peticion["soporte"]) if "soporte" in datos_peticion and datos_peticion["soporte"] is not None else None
-            confianza_minima = float(datos_peticion["confianza"]) if "confianza" in datos_peticion and datos_peticion["confianza"] is not None else None
-
-            # Normalizar si el usuario ingresó porcentaje (ej: 2 en vez de 0.02, 40 en vez de 0.40)
-            if soporte_minimo is not None and soporte_minimo > 1.0:
-                soporte_minimo = soporte_minimo / 100.0
-            if confianza_minima is not None and confianza_minima > 1.0:
-                confianza_minima = confianza_minima / 100.0
-
-            reglas_minadas = datacenter.cargar_y_minar_reglas_apriori(
-                soporte_minimo=soporte_minimo,
-                confianza_minima=confianza_minima
-            )
-            return jsonify({
-                "mensaje": f"Se extrajeron exitosamente {len(reglas_minadas)} reglas con el algoritmo Apriori.",
-                "total_reglas": len(reglas_minadas),
-                "reglas": reglas_minadas
-            })
-        except Exception as e:
-            return jsonify({
-                "error": str(e),
-                "total_reglas": len(datacenter.lista_reglas_activas),
-                "reglas": datacenter.lista_reglas_activas
-            }), 400
 
     @controlador.route("/inferencia", methods=["POST"])
     def evaluar_inferencia_tiempo_real():
@@ -110,10 +82,6 @@ def crear_controlador_api(datacenter, ruta_archivo_sensores_csv: str) -> Bluepri
         tasa_cruce = float(datos_peticion["tasa_cruce"]) if "tasa_cruce" in datos_peticion else None
         tasa_mutacion = float(datos_peticion["tasa_mutacion"]) if "tasa_mutacion" in datos_peticion else None
         temperatura_fija = float(datos_peticion["temperatura_fija"]) if "temperatura_fija" in datos_peticion else 18.0
-
-        if not datacenter.lista_reglas_activas:
-            datacenter.cargar_y_minar_reglas_apriori()
-
         resultado_optimizacion = datacenter.ejecutar_optimizacion_genetica(
             tamano_poblacion=tamano_poblacion,
             numero_generaciones=numero_generaciones,
