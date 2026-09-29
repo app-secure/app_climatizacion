@@ -31,11 +31,6 @@ const app = {
       });
     });
 
-    // Minado Apriori desde la barra de herramientas del editor de reglas
-    const btnCargarToolbar = document.getElementById("btnCargarReglasToolbar");
-    if (btnCargarToolbar) {
-      btnCargarToolbar.addEventListener("click", () => this.ejecutarMinadoApriori());
-    }
 
     // Subir dataset CSV
     const inputCSV = document.getElementById("inputArchivoCSV");
@@ -216,7 +211,7 @@ const app = {
         }
       }
 
-      this.actualizarStatus("Dataset listo. Presione 'Extraer mejores reglas' para minar con Apriori.", false);
+      this.actualizarStatus("Sistema inicializado. 36 reglas activas cargadas en el controlador Mamdani.", false);
     } catch (err) {
       console.error("Error al cargar estado inicial:", err);
       this.actualizarStatus("Error de conexión con el backend.", false);
@@ -243,13 +238,13 @@ const app = {
       const tr = document.createElement("tr");
       tr.id = `reglaRow_${idx}`;
       
-      const confFormatted = (r.confianza).toFixed(2);
-      const soporteFormatted = (r.soporte).toFixed(3);
+      const consecuente = r.etiqueta_consecuente || "N/A";
+      const pesoFormatted = (r.peso !== undefined ? r.peso : 1.0).toFixed(2);
       tr.innerHTML = `
         <td style="text-align: center; font-weight: bold; color: #57606a;">${idx + 1}</td>
         <td><code>${r.texto_regla}</code></td>
-        <td style="text-align: center;"><span style="background: #eef2f6; color: #005a82; padding: 2px 6px; border-radius: 3px; font-weight: 600; font-family: var(--font-mono);">${soporteFormatted}</span></td>
-        <td style="text-align: center;"><span class="badge-weight">${confFormatted}</span></td>
+        <td style="text-align: center;"><span style="background: #eef2f6; color: #005a82; padding: 2px 6px; border-radius: 3px; font-weight: 600; font-family: var(--font-mono);">${consecuente}</span></td>
+        <td style="text-align: center;"><span class="badge-weight">${pesoFormatted}</span></td>
         <td style="text-align: center; font-weight: 600; color: #198754; font-size: 11px;">AND</td>
       `;
 
@@ -423,43 +418,6 @@ const app = {
     });
   },
 
-  // Minado de reglas en vivo con Apriori
-  async ejecutarMinadoApriori() {
-    const soporte = parseFloat(document.getElementById("inputSoporte").value) || 0.02;
-    const confianza = parseFloat(document.getElementById("inputConfianza").value) || 0.40;
-
-    this.actualizarStatus(`Ejecutando algoritmo Apriori (Soporte: ${soporte}, Confianza: ${confianza})...`, true);
-
-    try {
-      const res = await fetch("/api/minar-apriori", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ soporte, confianza })
-      });
-      const data = await res.json();
-
-      if (data.error) {
-        alert(data.error);
-        this.actualizarStatus(data.error, false);
-        return;
-      }
-
-      this.reglas = data.reglas || [];
-      this.renderizarTablaReglas(this.reglas);
-
-      const lblTotalA = document.getElementById("lblTotalReglasSidebar");
-      if (lblTotalA) lblTotalA.textContent = this.reglas.length;
-      const lblTreeA = document.getElementById("lblTreeReglasCount");
-      if (lblTreeA) lblTreeA.textContent = this.reglas.length;
-      document.getElementById("badgeReglasCount").textContent = this.reglas.length;
-
-      this.actualizarStatus(data.mensaje, false);
-      this.ejecutarInferencia();
-    } catch (err) {
-      console.error("Error al minar reglas:", err);
-      this.actualizarStatus("Error al ejecutar Apriori.", false);
-    }
-  },
 
   // Subir y procesar nuevo archivo CSV de sensores
   async subirDatasetCSV(event) {
@@ -943,7 +901,7 @@ const app = {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", "reglas_apriori_difusas.csv");
+    link.setAttribute("download", "reglas_control_difuso.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
