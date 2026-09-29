@@ -1,67 +1,74 @@
 /**
- * MATLAB Fuzzy Logic Designer - Lógica del Frontend
- * Integración con Backend: Control Difuso (Mamdani), Algoritmo Genético
+ * MATLAB Fuzzy Logic Designer & Genetic Algorithm Optimizer - Frontend Controller
+ * Proyecto: Climatización de Datacenter bajo ASHRAE TC 9.9 Clase A1
  */
 
 const app = {
   reglas: [],
-  reglaSeleccionada: null,
-  graficosMF: {},
-  graficoGA: null,
-  graficoAgregacion: null,
+  curvasPertenencia: null,
+  simulacionActual: null,
+  graficosChartJS: {},
+  miniGraficosFIS: {},
   superficieCargada: false,
   debounceTimer: null,
 
-  // Inicialización
+  // Inicialización al cargar la aplicación
   async init() {
     this.enlazarEventos();
     await this.cargarEstadoInicial();
     await this.cargarCurvasPertenencia();
+    this.actualizarConectoresSVG();
     this.ejecutarInferencia();
-    this.actualizarTemperaturaFijaComparacion(18.0);
   },
 
   // Enlace de Eventos del DOM
   enlazarEventos() {
-    // Tabs de la barra central (Reglas, Pertenencia, Superficie, Genético)
+    // Pestañas del espacio de trabajo
     document.querySelectorAll(".center-tab").forEach(tab => {
       tab.addEventListener("click", () => {
-        const targetTabId = tab.getAttribute("data-tab");
-        this.activarTab(targetTabId);
+        const targetId = tab.getAttribute("data-tab");
+        this.activarTab(targetId);
       });
     });
 
-
-    // Subir dataset CSV
-    const inputCSV = document.getElementById("inputArchivoCSV");
-    const btnSubir = document.getElementById("btnSubirDataset");
-    if (btnSubir && inputCSV) {
-      btnSubir.addEventListener("click", () => {
-        if (!btnSubir.disabled) inputCSV.click();
-      });
-      inputCSV.addEventListener("change", (e) => this.subirDatasetCSV(e));
-    }
-
-    // Algoritmo Genético
+    // Botón de ejecución del Algoritmo Genético
     const btnGA = document.getElementById("btnEjecutarGA");
     if (btnGA) {
       btnGA.addEventListener("click", () => this.ejecutarAlgoritmoGenetico());
     }
 
-    // Cambio dinámico de Temperatura Fija de Comparación
-    const inputTempFija = document.getElementById("gaTempFija");
-    if (inputTempFija) {
-      inputTempFija.addEventListener("input", (e) => {
-        const val = parseFloat(e.target.value) || 18.0;
-        this.actualizarTemperaturaFijaComparacion(val);
+    // Sliders del Probador Manual
+    ["sliderRack", "sliderCpu", "sliderExt"].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.addEventListener("input", () => {
+          this.actualizarEtiquetasSlidersManuales();
+          clearTimeout(this.debounceTimer);
+          this.debounceTimer = setTimeout(() => this.ejecutarInferencia(), 60);
+        });
+      }
+    });
+
+    // Botón manual de cálculo
+    const btnCalc = document.getElementById("btnCalcularInferencia");
+    if (btnCalc) {
+      btnCalc.addEventListener("click", () => this.ejecutarInferencia());
+    }
+
+    // Filtro de reglas en la tabla
+    const selectFiltro = document.getElementById("selectFiltroRack");
+    if (selectFiltro) {
+      selectFiltro.addEventListener("change", (e) => {
+        this.renderizarTablaReglas(this.reglas, e.target.value);
       });
     }
 
-    // Superficie 3D controles
+    // Superficie 3D
     const sliderSurf = document.getElementById("sliderSurfaceExt");
     if (sliderSurf) {
       sliderSurf.addEventListener("input", (e) => {
-        document.getElementById("valSurfaceExt").textContent = `${parseFloat(e.target.value).toFixed(1)} °C`;
+        const val = parseFloat(e.target.value).toFixed(1);
+        document.getElementById("valSurfaceExt").textContent = `${val} °C`;
       });
       sliderSurf.addEventListener("change", () => this.cargarSuperficie3D());
     }
@@ -70,27 +77,20 @@ const app = {
       btnSurf.addEventListener("click", () => this.cargarSuperficie3D());
     }
 
-    // Sliders de Inferencia en Tiempo Real
-    const sliders = ["sliderRack", "sliderCpu", "sliderExt"];
-    sliders.forEach(id => {
-      const sliderEl = document.getElementById(id);
-      if (sliderEl) {
-        sliderEl.addEventListener("input", () => {
-          this.actualizarEtiquetasSliders();
-          clearTimeout(this.debounceTimer);
-          this.debounceTimer = setTimeout(() => this.ejecutarInferencia(), 40);
-        });
+    // Redibujar SVG connectors al redimensionar ventana
+    window.addEventListener("resize", () => {
+      this.actualizarConectoresSVG();
+      if (document.getElementById("tabSimulacion").classList.contains("active")) {
+        Plotly.Plots.resize("plotSimulacionTemperatura");
+        Plotly.Plots.resize("plotSimulacionPotenciaClima");
+      }
+      if (document.getElementById("tabSuperficie").classList.contains("active")) {
+        Plotly.Plots.resize("plotSuperficie3D");
       }
     });
-
-    // Exportar reglas (opcional)
-    const btnExp = document.getElementById("btnExportarReglas");
-    if (btnExp) {
-      btnExp.addEventListener("click", () => this.exportarReglasCSV());
-    }
   },
 
-  // Cambiar pestaña activa
+  // Cambio de pestañas
   activarTab(tabId) {
     document.querySelectorAll(".center-tab").forEach(t => t.classList.remove("active"));
     document.querySelectorAll(".tab-pane").forEach(p => p.classList.remove("active"));
@@ -103,181 +103,520 @@ const app = {
       tabPane.classList.add("active");
     }
 
-    // Si se presiona directamente el panel de Función de Pertenencia, mostrar todos los gráficos
-    if (tabId === "tabCurvas") {
-      this.mostrarTodosLosGraficosPertenencia();
-    }
-
-    if (tabId === "tabSuperficie" && !this.superficieCargada) {
-      this.cargarSuperficie3D();
-    }
-  },
-
-  // Mostrar únicamente el gráfico de una variable seleccionada en el árbol
-  mostrarGraficoPertenencia(nombreVariable) {
-    // Activar pestaña de curvas sin disparar mostrarTodosLosGraficosPertenencia
-    document.querySelectorAll(".center-tab").forEach(t => t.classList.remove("active"));
-    document.querySelectorAll(".tab-pane").forEach(p => p.classList.remove("active"));
-    const tabHead = document.querySelector(`.center-tab[data-tab="tabCurvas"]`);
-    const tabPane = document.getElementById("tabCurvas");
-    if (tabHead && tabPane) {
-      tabHead.classList.add("active");
-      tabPane.classList.add("active");
-    }
-
-    // Marcar nodo activo en el árbol
-    document.querySelectorAll(".tree-node").forEach(n => n.classList.remove("active"));
-    const activeNode = document.getElementById(`treeNode-${nombreVariable}`);
-    if (activeNode) activeNode.classList.add("active");
-
-    // Activar modo de vista única en la cuadrícula
-    const grid = document.getElementById("membershipGrid");
-    if (grid) grid.classList.add("single-view");
-
-    const cards = ["temperatura_rack", "uso_cpu", "temperatura_exterior", "potencia_enfriamiento"];
-    cards.forEach(varKey => {
-      const card = document.getElementById(`card-${varKey}`);
-      if (card) {
-        card.style.display = (varKey === nombreVariable) ? "flex" : "none";
+    if (tabId === "tabSimulacion") {
+      setTimeout(() => {
+        Plotly.Plots.resize("plotSimulacionTemperatura");
+        Plotly.Plots.resize("plotSimulacionPotenciaClima");
+      }, 50);
+    } else if (tabId === "tabFIS") {
+      setTimeout(() => this.actualizarConectoresSVG(), 50);
+    } else if (tabId === "tabSuperficie") {
+      if (!this.superficieCargada) {
+        this.cargarSuperficie3D();
+      } else {
+        setTimeout(() => Plotly.Plots.resize("plotSuperficie3D"), 50);
       }
-    });
-
-    // Mostrar barra informativa de filtro
-    const toolbar = document.getElementById("toolbarCurvas");
-    if (toolbar) toolbar.style.display = "flex";
-    const lbl = document.getElementById("lblFiltroCurvaActiva");
-    if (lbl) {
-      const nombresHumanos = {
-        temperatura_rack: "Entrada: Temperatura Rack (°C)",
-        uso_cpu: "Entrada: Uso de CPU (%)",
-        temperatura_exterior: "Entrada: Temperatura Exterior (°C)",
-        potencia_enfriamiento: "Salida: Potencia de Enfriamiento (%)"
-      };
-      lbl.innerHTML = `<i class="fa-solid fa-chart-line"></i> ${nombresHumanos[nombreVariable] || nombreVariable}`;
     }
-
-    setTimeout(() => {
-      if (this.graficosMF[nombreVariable]) {
-        this.graficosMF[nombreVariable].resize();
-      }
-    }, 40);
   },
 
-  // Mostrar todos los gráficos (las 4 funciones de pertenencia en cuadrícula 2x2)
-  mostrarTodosLosGraficosPertenencia() {
-    const grid = document.getElementById("membershipGrid");
-    if (grid) grid.classList.remove("single-view");
-
-    const cards = ["temperatura_rack", "uso_cpu", "temperatura_exterior", "potencia_enfriamiento"];
-    cards.forEach(varKey => {
-      const card = document.getElementById(`card-${varKey}`);
-      if (card) card.style.display = "flex";
-    });
-
-    document.querySelectorAll(".tree-node").forEach(n => n.classList.remove("active"));
-
-    const toolbar = document.getElementById("toolbarCurvas");
-    if (toolbar) toolbar.style.display = "none";
-
-    setTimeout(() => {
-      Object.values(this.graficosMF).forEach(g => g?.resize());
-    }, 40);
-  },
-
-  // Cargar estado inicial del sistema desde Flask
+  // Cargar estado inicial del sistema desde /api/estado
   async cargarEstadoInicial() {
     try {
-      this.actualizarStatus("Verificando datos del sistema...", true);
+      this.actualizarStatus("Cargando estado inicial del sistema...", true);
       const res = await fetch("/api/estado");
       const data = await res.json();
 
-      // Cargar y renderizar las 36 reglas activas del controlador difuso Mamdani:
       this.reglas = data.reglas || [];
-      this.renderizarTablaReglas(this.reglas);
-      const badgeReglas = document.getElementById("badgeReglasCount");
-      if (badgeReglas) badgeReglas.textContent = this.reglas.length;
+      this.simulacionActual = data;
 
-      // Si el dataset ya está cargado por defecto, bloquear el botón de subir:
-      const btnSubir = document.getElementById("btnSubirDataset");
-      const lblEstadoDataset = document.getElementById("lblEstadoDatasetSidebar");
-      if (data.dataset_existe) {
-        if (btnSubir) {
-          btnSubir.disabled = true;
-          btnSubir.classList.add("disabled");
-          btnSubir.title = `Dataset ya cargado en el sistema (${data.total_registros || 1500} registros).`;
-          btnSubir.innerHTML = `<i class="fa-solid fa-lock"></i> <span>Subir CSV</span>`;
-        }
-        if (lblEstadoDataset) {
-          lblEstadoDataset.innerHTML = `<i class="fa-solid fa-circle-check" style="color: #10b981;"></i> Dataset Cargado`;
-        }
+      // Actualizar tabla de reglas
+      this.renderizarTablaReglas(this.reglas, "TODOS");
+      const badgeCount = document.getElementById("lblTotalReglasCount");
+      if (badgeCount) badgeCount.textContent = `${this.reglas.length} Reglas Activas`;
+
+      // Actualizar tarjetas de KPIs
+      if (data.kpis) {
+        this.actualizarTarjetasKPI(data.kpis);
       }
+
+      // Renderizar gráficas de simulación de 96 pasos
+      this.renderizarSimulacionPlotly(data);
 
       this.actualizarStatus("Sistema inicializado. 36 reglas activas cargadas en el controlador Mamdani.", false);
     } catch (err) {
       console.error("Error al cargar estado inicial:", err);
-      this.actualizarStatus("Error de conexión con el backend.", false);
+      this.actualizarStatus("Error de conexión con el servidor Flask.", false);
     }
   },
 
-  // Renderizar la tabla de reglas exactamente como en el aula de clases
-  renderizarTablaReglas(reglas) {
-    const tbody = document.getElementById("tbodyReglas");
+  // Actualizar Tarjetas de KPIs en el Sidebar Izquierdo
+  actualizarTarjetasKPI(kpis) {
+    if (!kpis) return;
+
+    // Costo Diario AG
+    const elCosto = document.getElementById("kpiCostoDiario");
+    if (elCosto && kpis.costo_diario !== undefined) {
+      elCosto.textContent = `$ ${Number(kpis.costo_diario).toFixed(2)} USD/día`;
+    }
+
+    // Porcentaje de ahorro
+    const elAhorroPct = document.getElementById("kpiAhorroPct");
+    const elAhorroUsd = document.getElementById("kpiAhorroDiarioUsd");
+    const pct = kpis.ahorro_porcentaje !== undefined ? kpis.ahorro_porcentaje : (kpis.porcentaje_ahorro || 0);
+    const ahorroUsd = kpis.ahorro_diario !== undefined ? kpis.ahorro_diario : 0;
+
+    if (elAhorroPct) {
+      if (pct >= 0) {
+        elAhorroPct.className = "kpi-badge badge-green";
+        elAhorroPct.textContent = `+${Number(pct).toFixed(1)} % Ahorro`;
+      } else {
+        elAhorroPct.className = "kpi-badge badge-blue";
+        elAhorroPct.textContent = `${Number(pct).toFixed(1)} % Ahorro`;
+      }
+    }
+    if (elAhorroUsd) {
+      elAhorroUsd.textContent = `Ahorro: $ ${Math.abs(ahorroUsd).toFixed(2)} USD/día`;
+    }
+
+    // Consumo kWh
+    const elConsumo = document.getElementById("kpiConsumoKwh");
+    const elConsumoMes = document.getElementById("kpiConsumoMesKwh");
+    if (elConsumo && kpis.consumo_kwh !== undefined) {
+      elConsumo.textContent = `${Number(kpis.consumo_kwh).toFixed(1)} kWh`;
+      if (elConsumoMes) {
+        elConsumoMes.textContent = `~${Math.round(kpis.consumo_kwh * 30).toLocaleString()} kWh/mes`;
+      }
+    }
+
+    // Temperaturas
+    const elMax = document.getElementById("kpiTempMax");
+    const elProm = document.getElementById("kpiTempProm");
+    if (elMax && kpis.temp_maxima !== undefined) {
+      elMax.textContent = `${Number(kpis.temp_maxima).toFixed(2)} °C`;
+    }
+    if (elProm && kpis.temp_promedio !== undefined) {
+      elProm.textContent = `${Number(kpis.temp_promedio).toFixed(2)} °C`;
+    }
+
+    // Violaciones de Monotonía
+    const elViol = document.getElementById("kpiViolaciones");
+    if (elViol) {
+      const v = kpis.violaciones_monotonia || 0;
+      elViol.textContent = v;
+      elViol.style.color = v === 0 ? "#16a34a" : "#dc2626";
+    }
+  },
+
+  // Renderizar la simulación en lazo cerrado de 96 pasos (Plotly)
+  renderizarSimulacionPlotly(data) {
+    if (!data || !data.horas || !data.serie_temperaturas) return;
+
+    const horas = data.horas;
+    const tempAG = data.serie_temperaturas;
+    const tempTermostato = data.serie_temperaturas_estandar || [];
+    const potAG = data.serie_potencias;
+    const potTermostato = data.serie_potencias_estandar || [];
+    const tempExt = data.serie_temp_exterior || [];
+    const cpu = data.serie_uso_cpu || [];
+
+    // --- GRÁFICO 1: EVOLUCIÓN TÉRMICA DEL RACK (AG vs. TERMOSTATO vs. ASHRAE) ---
+    const trazasTemp = [
+      // Banda sombreada ASHRAE (18 a 27 °C)
+      {
+        x: [horas[0], horas[horas.length - 1], horas[horas.length - 1], horas[0]],
+        y: [18.0, 18.0, 27.0, 27.0],
+        fill: "toself",
+        fillcolor: "rgba(16, 185, 129, 0.08)",
+        line: { color: "transparent" },
+        showlegend: false,
+        hoverinfo: "none",
+        name: "Banda Óptima ASHRAE"
+      },
+      // Límite ASHRAE 27 °C
+      {
+        x: [horas[0], horas[horas.length - 1]],
+        y: [27.0, 27.0],
+        mode: "lines",
+        name: "Límite ASHRAE (27 °C)",
+        line: { color: "#f59e0b", width: 1.8, dash: "dot" }
+      },
+      // Límite Dell R740 30 °C
+      {
+        x: [horas[0], horas[horas.length - 1]],
+        y: [30.0, 30.0],
+        mode: "lines",
+        name: "Límite Crítico Dell (30 °C)",
+        line: { color: "#ef4444", width: 1.5, dash: "dash" }
+      },
+      // Línea Base: Termostato 18 °C
+      {
+        x: horas,
+        y: tempTermostato,
+        mode: "lines",
+        name: "Termostato Proporcional 18 °C",
+        line: { color: "#64748b", width: 2, dash: "dash" }
+      },
+      // Controlador Difuso Evolucionado (AG)
+      {
+        x: horas,
+        y: tempAG,
+        mode: "lines",
+        name: "Controlador Difuso (AG)",
+        line: { color: "#0284c7", width: 2.8 }
+      }
+    ];
+
+    const layoutTemp = {
+      margin: { l: 50, r: 25, t: 25, b: 35 },
+      xaxis: {
+        title: { text: "Hora del Día (h)", font: { size: 10.5, color: "#334155" } },
+        tickvals: [0, 3, 6, 9, 12, 15, 18, 21, 24],
+        gridcolor: "#f1f5f9",
+        zeroline: false
+      },
+      yaxis: {
+        title: { text: "Temp. Rack (°C)", font: { size: 10.5, color: "#334155" } },
+        range: [15, 32],
+        gridcolor: "#f1f5f9"
+      },
+      legend: {
+        orientation: "h",
+        y: 1.15,
+        x: 0,
+        font: { size: 10 }
+      },
+      hovermode: "x unified",
+      paper_bgcolor: "#ffffff",
+      plot_bgcolor: "#ffffff"
+    };
+
+    Plotly.react("plotSimulacionTemperatura", trazasTemp, layoutTemp, { responsive: true, displayModeBar: false });
+
+    // --- GRÁFICO 2: DINÁMICA DE POTENCIA HVAC Y CLIMA EXTERIOR ---
+    const trazasPot = [
+      // Potencia AG
+      {
+        x: horas,
+        y: potAG,
+        mode: "lines",
+        name: "Potencia HVAC AG (%)",
+        fill: "tozeroy",
+        fillcolor: "rgba(2, 132, 199, 0.18)",
+        line: { color: "#0284c7", width: 2.2 }
+      },
+      // Potencia Termostato
+      {
+        x: horas,
+        y: potTermostato,
+        mode: "lines",
+        name: "Potencia Termostato 18 °C (%)",
+        line: { color: "#94a3b8", width: 1.8, dash: "dot" }
+      },
+      // Carga CPU
+      {
+        x: horas,
+        y: cpu,
+        mode: "lines",
+        name: "Carga CPU Servidores (%)",
+        line: { color: "#8b5cf6", width: 1.5 }
+      },
+      // Temperatura Exterior (Eje secundario)
+      {
+        x: horas,
+        y: tempExt,
+        mode: "lines",
+        name: "Temp. Exterior (°C)",
+        yaxis: "y2",
+        line: { color: "#ea580c", width: 2 }
+      }
+    ];
+
+    const layoutPot = {
+      margin: { l: 50, r: 50, t: 25, b: 35 },
+      xaxis: {
+        title: { text: "Hora del Día (h)", font: { size: 10.5, color: "#334155" } },
+        tickvals: [0, 3, 6, 9, 12, 15, 18, 21, 24],
+        gridcolor: "#f1f5f9",
+        zeroline: false
+      },
+      yaxis: {
+        title: { text: "Potencia / CPU (%)", font: { size: 10.5, color: "#334155" } },
+        range: [0, 105],
+        gridcolor: "#f1f5f9"
+      },
+      yaxis2: {
+        title: { text: "Temp. Exterior (°C)", font: { size: 10.5, color: "#ea580c" } },
+        range: [5, 42],
+        overlaying: "y",
+        side: "right",
+        gridcolor: "transparent"
+      },
+      legend: {
+        orientation: "h",
+        y: 1.15,
+        x: 0,
+        font: { size: 10 }
+      },
+      hovermode: "x unified",
+      paper_bgcolor: "#ffffff",
+      plot_bgcolor: "#ffffff"
+    };
+
+    Plotly.react("plotSimulacionPotenciaClima", trazasPot, layoutPot, { responsive: true, displayModeBar: false });
+  },
+
+  // Renderizar la tabla de 36 reglas (Sin aptitud individual por regla)
+  renderizarTablaReglas(reglas, filtroRack = "TODOS") {
+    const tbody = document.getElementById("tbodyReglas36");
+    if (!tbody) return;
     tbody.innerHTML = "";
 
-    if (!reglas || reglas.length === 0) {
-      tbody.innerHTML = `
-        <tr>
-          <td colspan="5" style="text-align: center; padding: 30px 20px; color: #64748b;">
-            <div style="font-size: 24px; color: #0284c7; margin-bottom: 6px;"><i class="fa-solid fa-database"></i></div>
-            <div style="font-size: 13px; font-weight: 600; color: #334e68;">Dataset Cargado</div>
-          </td>
-        </tr>`;
-      return;
-    }
-
-    reglas.forEach((r, idx) => {
-      const tr = document.createElement("tr");
-      tr.id = `reglaRow_${idx}`;
-      
-      const consecuente = r.etiqueta_consecuente || "N/A";
-      const pesoFormatted = (r.peso !== undefined ? r.peso : 1.0).toFixed(2);
-      tr.innerHTML = `
-        <td style="text-align: center; font-weight: bold; color: #57606a;">${idx + 1}</td>
-        <td><code>${r.texto_regla}</code></td>
-        <td style="text-align: center;"><span style="background: #eef2f6; color: #005a82; padding: 2px 6px; border-radius: 3px; font-weight: 600; font-family: var(--font-mono);">${consecuente}</span></td>
-        <td style="text-align: center;"><span class="badge-weight">${pesoFormatted}</span></td>
-        <td style="text-align: center; font-weight: 600; color: #198754; font-size: 11px;">AND</td>
-      `;
-
-      tr.addEventListener("click", () => this.seleccionarRegla(r, tr));
-      tbody.appendChild(tr);
+    const reglasFiltradas = reglas.filter(r => {
+      if (filtroRack === "TODOS") return true;
+      const ant = r.antecedentes || {};
+      return ant.temperatura_rack === filtroRack;
     });
 
-    // Seleccionar la primera regla por defecto
-    if (reglas.length > 0) {
-      this.seleccionarRegla(reglas[0], tbody.firstElementChild);
+    reglasFiltradas.forEach(r => {
+      const tr = document.createElement("tr");
+      const id = r.identificador || r.id;
+      const ant = r.antecedentes || {};
+      const rack = ant.temperatura_rack || "--";
+      const cpu = ant.uso_cpu || "--";
+      const ext = ant.temperatura_exterior || "--";
+      const cons = r.etiqueta_consecuente || "N/A";
+      const nivel = r.nivel !== undefined ? r.nivel : 0;
+
+      // Colores de badges por antecedente
+      const badgeRackClass = `badge-rack-${rack.toLowerCase()}`;
+      const badgeConsClass = `badge-consecuente-${cons.toLowerCase()}`;
+
+      tr.innerHTML = `
+        <td style="text-align: center; font-weight: bold; color: #64748b;">${id}</td>
+        <td>
+          IF <span class="kpi-badge ${badgeRackClass}">${rack}</span>
+          AND CPU <span class="kpi-badge badge-blue">${cpu}</span>
+          AND T_ext <span class="kpi-badge badge-blue">${ext}</span>
+        </td>
+        <td style="text-align: center;">
+          THEN <span class="kpi-badge ${badgeConsClass}">${cons}</span>
+        </td>
+        <td style="text-align: center;">
+          <span class="badge-nivel">${nivel}</span>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+  },
+
+  // Carga y renderizado de las 4 funciones de pertenencia completas y mini-canvases FIS
+  async cargarCurvasPertenencia() {
+    try {
+      const res = await fetch("/api/curvas-pertenencia");
+      const datos = await res.json();
+      this.curvasPertenencia = datos;
+
+      this.dibujarMiniCurvasFIS(datos);
+      this.dibujarCurvasCompletasChartJS(datos);
+    } catch (err) {
+      console.error("Error al cargar curvas de pertenencia:", err);
     }
   },
 
-  // Seleccionar regla y resaltarla en la tabla
-  seleccionarRegla(regla, rowElement) {
-    document.querySelectorAll("#tbodyReglas tr").forEach(tr => tr.classList.remove("selected"));
-    if (rowElement) rowElement.classList.add("selected");
-    this.reglaSeleccionada = regla;
+  // Dibujar mini curvas en los bloques del diagrama FIS
+  dibujarMiniCurvasFIS(datos) {
+    const mapeo = {
+      temperatura_rack: "miniCanvasRack",
+      uso_cpu: "miniCanvasCpu",
+      temperatura_exterior: "miniCanvasExt",
+      potencia_enfriamiento: "miniCanvasPotencia"
+    };
+
+    const colores = {
+      temperatura_rack: ["#0284c7", "#16a34a", "#eab308", "#dc2626"],
+      uso_cpu: ["#0284c7", "#f59e0b", "#dc2626"],
+      temperatura_exterior: ["#0284c7", "#f59e0b", "#dc2626"],
+      potencia_enfriamiento: ["#16a34a", "#0284c7", "#f59e0b", "#dc2626"]
+    };
+
+    for (const [varKey, canvasId] of Object.entries(mapeo)) {
+      const canvas = document.getElementById(canvasId);
+      if (!canvas || !datos[varKey]) continue;
+
+      const varData = datos[varKey];
+      const ctx = canvas.getContext("2d");
+      const datasets = [];
+      let cIdx = 0;
+
+      for (const [mfName, mfValues] of Object.entries(varData.conjuntos)) {
+        const c = colores[varKey][cIdx % colores[varKey].length];
+        datasets.push({
+          label: mfName,
+          data: mfValues.map((y, i) => ({ x: varData.x[i], y })),
+          borderColor: c,
+          borderWidth: 1.5,
+          pointRadius: 0,
+          fill: false,
+          tension: 0
+        });
+        cIdx++;
+      }
+
+      if (this.miniGraficosFIS[varKey]) {
+        this.miniGraficosFIS[varKey].destroy();
+      }
+
+      this.miniGraficosFIS[varKey] = new Chart(ctx, {
+        type: "line",
+        data: { datasets },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: false,
+          plugins: { legend: { display: false }, tooltip: { enabled: false } },
+          scales: {
+            x: { display: false },
+            y: { display: false, min: 0, max: 1.05 }
+          }
+        }
+      });
+    }
   },
 
-  // Actualizar valores numéricos al mover los sliders
-  actualizarEtiquetasSliders() {
-    const tempRack = parseFloat(document.getElementById("sliderRack").value).toFixed(1);
-    const usoCpu = parseFloat(document.getElementById("sliderCpu").value).toFixed(1);
-    const tempExt = parseFloat(document.getElementById("sliderExt").value).toFixed(1);
+  // Dibujar gráficas de pertenencia de alta resolución para la inspección
+  dibujarCurvasCompletasChartJS(datos) {
+    const mapeo = {
+      temperatura_rack: "chartFullRack",
+      uso_cpu: "chartFullCpu",
+      temperatura_exterior: "chartFullExt",
+      potencia_enfriamiento: "chartFullPotencia"
+    };
 
-    document.getElementById("valRack").textContent = `${tempRack} °C`;
-    document.getElementById("valCpu").textContent = `${usoCpu} %`;
-    document.getElementById("valExt").textContent = `${tempExt} °C`;
+    const colores = {
+      temperatura_rack: ["#0284c7", "#16a34a", "#f59e0b", "#dc2626"],
+      uso_cpu: ["#0284c7", "#f59e0b", "#dc2626"],
+      temperatura_exterior: ["#0284c7", "#f59e0b", "#dc2626"],
+      potencia_enfriamiento: ["#16a34a", "#0284c7", "#f59e0b", "#dc2626"]
+    };
+
+    for (const [varKey, canvasId] of Object.entries(mapeo)) {
+      const canvas = document.getElementById(canvasId);
+      if (!canvas || !datos[varKey]) continue;
+
+      const varData = datos[varKey];
+      const ctx = canvas.getContext("2d");
+      const datasets = [];
+      let cIdx = 0;
+
+      for (const [mfName, mfValues] of Object.entries(varData.conjuntos)) {
+        const c = colores[varKey][cIdx % colores[varKey].length];
+        datasets.push({
+          label: mfName,
+          data: mfValues.map((y, i) => ({ x: varData.x[i], y })),
+          borderColor: c,
+          backgroundColor: c + "18",
+          borderWidth: 2,
+          fill: true,
+          pointRadius: 0,
+          tension: 0
+        });
+        cIdx++;
+      }
+
+      if (this.graficosChartJS[varKey]) {
+        this.graficosChartJS[varKey].destroy();
+      }
+
+      this.graficosChartJS[varKey] = new Chart(ctx, {
+        type: "line",
+        data: { datasets },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: false,
+          scales: {
+            x: {
+              type: "linear",
+              title: { display: true, text: varData.etiqueta_x, font: { size: 9.5 } },
+              grid: { color: "#f1f5f9" }
+            },
+            y: {
+              min: 0,
+              max: 1.05,
+              title: { display: true, text: "μ", font: { size: 9.5 } },
+              grid: { color: "#f1f5f9" }
+            }
+          },
+          plugins: {
+            legend: {
+              position: "top",
+              labels: { boxWidth: 10, font: { size: 9 } }
+            }
+          }
+        }
+      });
+    }
   },
 
-  // Inferencia en Tiempo Real
+  // Actualizar los cables SVG de conexión en el Diagrama FIS
+  actualizarConectoresSVG() {
+    const area = document.getElementById("fisCanvasArea");
+    if (!area) return;
+
+    const b1 = document.getElementById("blockInputRack");
+    const b2 = document.getElementById("blockInputCpu");
+    const b3 = document.getElementById("blockInputExt");
+    const center = document.querySelector(".fis-center-block");
+    const out = document.getElementById("blockOutputPotencia");
+
+    if (!b1 || !b2 || !b3 || !center || !out) return;
+
+    const rectArea = area.getBoundingClientRect();
+    const r1 = b1.getBoundingClientRect();
+    const r2 = b2.getBoundingClientRect();
+    const r3 = b3.getBoundingClientRect();
+    const rc = center.getBoundingClientRect();
+    const ro = out.getBoundingClientRect();
+
+    const x1 = r1.right - rectArea.left;
+    const y1 = r1.top + r1.height / 2 - rectArea.top;
+
+    const x2 = r2.right - rectArea.left;
+    const y2 = r2.top + r2.height / 2 - rectArea.top;
+
+    const x3 = r3.right - rectArea.left;
+    const y3 = r3.top + r3.height / 2 - rectArea.top;
+
+    const xc_in = rc.left - rectArea.left;
+    const yc = rc.top + rc.height / 2 - rectArea.top;
+
+    const xc_out = rc.right - rectArea.left;
+    const xo_in = ro.left - rectArea.left;
+    const yo = ro.top + ro.height / 2 - rectArea.top;
+
+    const p1 = document.getElementById("pathInput1");
+    const p2 = document.getElementById("pathInput2");
+    const p3 = document.getElementById("pathInput3");
+    const pout = document.getElementById("pathOutput");
+
+    if (p1) p1.setAttribute("d", `M ${x1} ${y1} C ${(x1 + xc_in) / 2} ${y1}, ${(x1 + xc_in) / 2} ${yc}, ${xc_in} ${yc}`);
+    if (p2) p2.setAttribute("d", `M ${x2} ${y2} L ${xc_in} ${yc}`);
+    if (p3) p3.setAttribute("d", `M ${x3} ${y3} C ${(x3 + xc_in) / 2} ${y3}, ${(x3 + xc_in) / 2} ${yc}, ${xc_in} ${yc}`);
+    if (pout) pout.setAttribute("d", `M ${xc_out} ${yc} L ${xo_in} ${yo}`);
+  },
+
+  // Actualizar etiquetas numéricas al deslizar sliders manuales
+  actualizarEtiquetasSlidersManuales() {
+    const r = parseFloat(document.getElementById("sliderRack").value).toFixed(1);
+    const c = parseFloat(document.getElementById("sliderCpu").value).toFixed(1);
+    const e = parseFloat(document.getElementById("sliderExt").value).toFixed(1);
+
+    document.getElementById("lblSliderRack").textContent = `${r} °C`;
+    document.getElementById("lblSliderCpu").textContent = `${c} %`;
+    document.getElementById("lblSliderExt").textContent = `${e} °C`;
+  },
+
+  // Ejecución de Inferencia Manual Rápida
   async ejecutarInferencia() {
     const tempRack = parseFloat(document.getElementById("sliderRack").value);
     const usoCpu = parseFloat(document.getElementById("sliderCpu").value);
@@ -294,324 +633,101 @@ const app = {
         })
       });
       const data = await res.json();
+      const z = Number(data.potencia_enfriamiento).toFixed(1);
 
-      const potencia = data.potencia_enfriamiento.toFixed(1);
-      document.getElementById("valPotenciaOutput").textContent = `${potencia} %`;
+      // Actualizar tarjeta del sidebar
+      const elVal = document.getElementById("valPotenciaZ");
+      const elBar = document.getElementById("meterPotenciaFill");
+      const elLbl = document.getElementById("lblNivelConsecuente");
 
-      // Barra de progreso y color según intensidad
-      const barFill = document.getElementById("barPotenciaFill");
-      barFill.style.width = `${Math.min(100, Math.max(0, potencia))}%`;
+      if (elVal) elVal.textContent = `${z} %`;
+      if (elBar) elBar.style.width = `${Math.min(100, Math.max(0, z))}%`;
 
-      if (potencia > 75) {
-        barFill.style.background = "linear-gradient(to right, #f59e0b, #ef4444)";
-      } else if (potencia > 45) {
-        barFill.style.background = "linear-gradient(to right, #0076a8, #0ea5e9)";
-      } else {
-        barFill.style.background = "linear-gradient(to right, #10b981, #06b6d4)";
-      }
+      // Nivel consecuente
+      let nivelNombre = "MEDIA";
+      if (z <= 25.0) nivelNombre = "MINIMA";
+      else if (z <= 55.0) nivelNombre = "MEDIA";
+      else if (z <= 80.0) nivelNombre = "ALTA";
+      else nivelNombre = "MAXIMA";
 
-      // Renderizar gráfico de la figura difusa agregada y línea del centroide
-      if (data.curva_agregada) {
-        this.renderizarGraficoAgregacion(data.curva_agregada, parseFloat(potencia));
-      }
+      if (elLbl) elLbl.textContent = nivelNombre;
+
+      // Actualizar en el diagrama FIS
+      const fisVal = document.getElementById("fisOutputValCentroid");
+      if (fisVal) fisVal.textContent = `z* = ${z} % (${nivelNombre})`;
     } catch (err) {
-      console.error("Error en inferencia:", err);
+      console.error("Error al calcular inferencia manual:", err);
     }
   },
 
-  // Renderizar gráfico de Agregación Difusa y Centroide en el panel derecho
-  renderizarGraficoAgregacion(curvaAgregada, centroideVal) {
-    const canvas = document.getElementById("chartAgregacionDefuzz");
-    if (!canvas) return;
+  // Ejecutar el Algoritmo Genético
+  async ejecutarAlgoritmoGenetico() {
+    const poblacion = parseInt(document.getElementById("inputPoblacion").value) || 20;
+    const generaciones = parseInt(document.getElementById("inputGeneraciones").value) || 20;
+    const mutacionPct = parseFloat(document.getElementById("inputTasaMutacion").value) || 20;
+    const tempFija = parseFloat(document.getElementById("inputTempFijaBase").value) || 18.0;
 
-    const lblCentroide = document.getElementById("lblCentroideGrafico");
-    if (lblCentroide) {
-      lblCentroide.textContent = `z* = ${centroideVal.toFixed(1)} %`;
-    }
+    const btn = document.getElementById("btnEjecutarGA");
+    const loader = document.getElementById("gaProgressStatus");
 
-    if (!curvaAgregada || !curvaAgregada.x || curvaAgregada.x.length === 0) return;
-
-    const ctx = canvas.getContext("2d");
-    const dataPoints = curvaAgregada.x.map((xVal, i) => ({ x: xVal, y: curvaAgregada.y[i] }));
-
-    const lineaCentroide = [
-      { x: centroideVal, y: 0 },
-      { x: centroideVal, y: 1.05 }
-    ];
-
-    if (this.graficoAgregacion) {
-      this.graficoAgregacion.data.datasets[0].data = dataPoints;
-      this.graficoAgregacion.data.datasets[1].data = lineaCentroide;
-      this.graficoAgregacion.update("none");
-      return;
-    }
-
-    this.graficoAgregacion = new Chart(ctx, {
-      type: "line",
-      data: {
-        datasets: [
-          {
-            label: "Conjunto Agregado",
-            data: dataPoints,
-            borderColor: "#007acc",
-            backgroundColor: "rgba(0, 122, 204, 0.22)",
-            borderWidth: 1.8,
-            fill: true,
-            tension: 0,
-            pointRadius: 0
-          },
-          {
-            label: "Centroide (z*)",
-            data: lineaCentroide,
-            borderColor: "#dc2626",
-            borderWidth: 2,
-            borderDash: [4, 4],
-            fill: false,
-            tension: 0,
-            pointRadius: 0
-          }
-        ]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        animation: false,
-        interaction: {
-          mode: "index",
-          intersect: false
-        },
-        scales: {
-          x: {
-            type: "linear",
-            min: 0,
-            max: 100,
-            title: { display: true, text: "Potencia Salida (%)", font: { size: 9 } },
-            ticks: { font: { size: 8 } },
-            grid: { color: "#f1f5f9" }
-          },
-          y: {
-            min: 0,
-            max: 1.1,
-            title: { display: true, text: "μ", font: { size: 9 } },
-            ticks: { font: { size: 8 } },
-            grid: { color: "#f1f5f9" }
-          }
-        },
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            enabled: true,
-            callbacks: {
-              title: function(items) {
-                if (!items || !items.length) return "";
-                return `Potencia: ${items[0].parsed.x.toFixed(1)} %`;
-              },
-              label: function(item) {
-                if (item.datasetIndex === 1) {
-                  return `  Centroide z* = ${centroideVal.toFixed(1)} %`;
-                }
-                return `  μ Agregado = ${item.parsed.y.toFixed(3)}`;
-              }
-            }
-          }
-        }
-      }
-    });
-  },
-
-
-  // Subir y procesar nuevo archivo CSV de sensores
-  async subirDatasetCSV(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    const formData = new FormData();
-    formData.append("archivo", file);
-
-    this.actualizarStatus(`Cargando dataset '${file.name}' para perfil de simulación...`, true);
+    btn.disabled = true;
+    btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Optimizando con AG...`;
+    if (loader) loader.style.display = "block";
+    this.actualizarStatus(`Evolucionando reglas con AG (N=${poblacion}, G=${generaciones}, Mut=${mutacionPct}%)...`, true);
 
     try {
-      const res = await fetch("/api/subir-dataset", {
+      const res = await fetch("/api/optimizar-genetico", {
         method: "POST",
-        body: formData
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          poblacion: poblacion,
+          generaciones: generaciones,
+          tasa_mutacion: mutacionPct / 100.0,
+          temperatura_fija: tempFija
+        })
       });
       const data = await res.json();
 
-      if (data.error) {
-        alert(data.error);
-        this.actualizarStatus(data.error, false);
-        return;
+      // 1. Actualizar tarjetas de KPIs
+      if (data.kpis) {
+        this.actualizarTarjetasKPI(data.kpis);
       }
 
-      this.reglas = data.reglas || [];
-      this.renderizarTablaReglas(this.reglas);
+      // 2. Redibujar gráficas de simulación de 96 pasos con la mejor tabla obtenida
+      this.simulacionActual = data;
+      this.renderizarSimulacionPlotly(data);
 
-      const lblTotalS = document.getElementById("lblTotalReglasSidebar");
-      if (lblTotalS) lblTotalS.textContent = this.reglas.length;
-      const lblTreeS = document.getElementById("lblTreeReglasCount");
-      if (lblTreeS) lblTreeS.textContent = this.reglas.length;
-      document.getElementById("badgeReglasCount").textContent = this.reglas.length;
+      // 3. Actualizar la tabla de 36 reglas
+      if (data.reglas && data.reglas.length > 0) {
+        this.reglas = data.reglas;
+        const filtro = document.getElementById("selectFiltroRack")?.value || "TODOS";
+        this.renderizarTablaReglas(this.reglas, filtro);
+      }
 
-      this.actualizarStatus(data.mensaje, false);
-      const lblDataset = document.getElementById("lblEstadoDatasetSidebar");
-      if (lblDataset) {
-        lblDataset.innerHTML = `<i class="fa-solid fa-circle-check" style="color: #10b981;"></i> Dataset Cargado`;
+      // 4. Si la pestaña de superficie 3D está activa, recalcularla
+      this.superficieCargada = false;
+      if (document.getElementById("tabSuperficie").classList.contains("active")) {
+        this.cargarSuperficie3D();
       }
-      const btnSubir = document.getElementById("btnSubirDataset");
-      if (btnSubir) {
-        btnSubir.disabled = true;
-        btnSubir.classList.add("disabled");
-        btnSubir.title = `Dataset ya cargado (${data.total_registros || 1500} registros)`;
-        btnSubir.innerHTML = `<i class="fa-solid fa-lock"></i> <span>Subir CSV</span>`;
-      }
+
+      // 5. Reevaluar inferencia manual
       this.ejecutarInferencia();
+
+      this.actualizarStatus("Optimización genética completada con éxito. Reglas activas sincronizadas.", false);
     } catch (err) {
-      console.error("Error al subir dataset:", err);
-      this.actualizarStatus("Error al cargar el dataset CSV.", false);
+      console.error("Error al ejecutar algoritmo genético:", err);
+      this.actualizarStatus("Error durante la optimización genética.", false);
     } finally {
-      event.target.value = "";
+      btn.disabled = false;
+      btn.innerHTML = `<i class="fa-solid fa-play"></i> Evolucionar Reglas con AG`;
+      if (loader) loader.style.display = "none";
     }
   },
 
-  // Carga y renderizado de las 4 funciones de pertenencia con Chart.js
-  async cargarCurvasPertenencia() {
-    try {
-      const res = await fetch("/api/curvas-pertenencia");
-      const datos = await res.json();
-
-      const paletaColores = {
-        temperatura_rack: [
-          { border: "#0284c7", bg: "rgba(2, 132, 199, 0.14)" },
-          { border: "#16a34a", bg: "rgba(22, 163, 74, 0.14)" },
-          { border: "#eab308", bg: "rgba(234, 179, 8, 0.14)" },
-          { border: "#dc2626", bg: "rgba(220, 38, 38, 0.14)" }
-        ],
-        uso_cpu: [
-          { border: "#0284c7", bg: "rgba(2, 132, 199, 0.14)" },
-          { border: "#f59e0b", bg: "rgba(245, 158, 11, 0.14)" },
-          { border: "#dc2626", bg: "rgba(220, 38, 38, 0.14)" }
-        ],
-        temperatura_exterior: [
-          { border: "#0284c7", bg: "rgba(2, 132, 199, 0.14)" },
-          { border: "#f59e0b", bg: "rgba(245, 158, 11, 0.14)" },
-          { border: "#dc2626", bg: "rgba(220, 38, 38, 0.14)" }
-        ],
-        potencia_enfriamiento: [
-          { border: "#dc2626", bg: "rgba(220, 38, 38, 0.14)" },
-          { border: "#f59e0b", bg: "rgba(245, 158, 11, 0.14)" },
-          { border: "#0284c7", bg: "rgba(2, 132, 199, 0.14)" },
-          { border: "#10b981", bg: "rgba(16, 185, 129, 0.14)" }
-        ]
-      };
-
-      const canvasIds = {
-        temperatura_rack: "chartTempRack",
-        uso_cpu: "chartUsoCpu",
-        temperatura_exterior: "chartTempExt",
-        potencia_enfriamiento: "chartPotencia"
-      };
-
-      for (const [varName, varData] of Object.entries(datos)) {
-        const canvas = document.getElementById(canvasIds[varName]);
-        if (!canvas) continue;
-        canvas.style.cursor = "crosshair";
-        const ctx = canvas.getContext("2d");
-        const datasets = [];
-        let colorIdx = 0;
-
-        for (const [mfName, mfValues] of Object.entries(varData.conjuntos)) {
-          const colorObj = (paletaColores[varName] && paletaColores[varName][colorIdx]) 
-            ? paletaColores[varName][colorIdx] 
-            : { border: "#0284c7", bg: "rgba(2, 132, 199, 0.14)" };
-
-          datasets.push({
-            label: mfName,
-            data: mfValues.map((y, i) => ({ x: varData.x[i], y })),
-            borderColor: colorObj.border,
-            backgroundColor: colorObj.bg,
-            borderWidth: 2,
-            tension: 0,
-            fill: true,
-            pointRadius: 0,
-            pointHoverRadius: 5,
-            pointHitRadius: 15
-          });
-          colorIdx++;
-        }
-
-        this.graficosMF[varName] = new Chart(ctx, {
-          type: "line",
-          data: { datasets },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            animation: false,
-            interaction: {
-              mode: "index",
-              intersect: false
-            },
-            hover: {
-              mode: "index",
-              intersect: false
-            },
-            scales: {
-              x: {
-                type: "linear",
-                title: { display: true, text: varData.etiqueta_x, font: { size: 10 } },
-                grid: { color: "#eef2f6" }
-              },
-              y: {
-                min: 0,
-                max: 1.05,
-                title: { display: true, text: "Grado de Pertenencia (μ)", font: { size: 10 } },
-                grid: { color: "#eef2f6" }
-              }
-            },
-            plugins: {
-              legend: {
-                position: "top",
-                labels: { boxWidth: 12, font: { size: 9 } }
-              },
-              tooltip: {
-                enabled: true,
-                mode: "index",
-                intersect: false,
-                backgroundColor: "rgba(16, 42, 67, 0.95)",
-                titleFont: { size: 12, weight: "bold" },
-                bodyFont: { size: 11 },
-                padding: 8,
-                cornerRadius: 4,
-                borderColor: "#334e68",
-                borderWidth: 1,
-                callbacks: {
-                  title: function(items) {
-                    if (!items || !items.length) return "";
-                    const xVal = items[0].parsed.x;
-                    return `${varData.etiqueta_x}: ${xVal.toFixed(1)}`;
-                  },
-                  label: function(item) {
-                    const mfName = item.dataset.label || "";
-                    const muVal = item.parsed.y;
-                    if (muVal > 0.001) {
-                      return `  ● ${mfName}: μ = ${muVal.toFixed(3)}`;
-                    }
-                    return `    ${mfName}: μ = 0.000`;
-                  }
-                }
-              }
-            }
-          }
-        });
-      }
-    } catch (err) {
-      console.error("Error cargando curvas de pertenencia:", err);
-    }
-  },
-
-  // Carga y renderizado de la Superficie 3D con Plotly
+  // Cargar Superficie 3D con Plotly
   async cargarSuperficie3D() {
     const tempExt = parseFloat(document.getElementById("sliderSurfaceExt").value) || 20.0;
-    this.actualizarStatus(`Calculando superficie de control 3D para Temp Ext = ${tempExt} °C...`, true);
+    this.actualizarStatus(`Calculando superficie 3D para Temp Ext = ${tempExt.toFixed(1)} °C...`, true);
 
     try {
       const res = await fetch(`/api/superficie-3d?temp_ext=${tempExt}`);
@@ -625,32 +741,22 @@ const app = {
         colorscale: "Viridis",
         hovertemplate: "Temp. Rack: %{x:.1f} °C<br>Uso CPU: %{y:.1f} %<br>Potencia HVAC: %{z:.1f} %<extra></extra>",
         contours: {
-          z: { show: true, usecolormap: true, highlightcolor: "#42f4eb", project: { z: false } }
+          z: { show: true, usecolormap: true, highlightcolor: "#38bdf8", project: { z: false } }
         }
       };
 
       const layout = {
-        title: {
-          text: `Superficie de Control Difuso (Temp Exterior = ${tempExt.toFixed(1)} °C)`,
-          font: { size: 13, family: "Segoe UI, sans-serif" }
-        },
         scene: {
-          xaxis: { 
-            title: { text: "Temp. Rack (°C)", font: { size: 11, color: "#102a43" } } 
-          },
-          yaxis: { 
-            title: { text: "Uso CPU (%)", font: { size: 11, color: "#102a43" } } 
-          },
-          zaxis: { 
-            title: { text: "Potencia HVAC (%)", font: { size: 11, color: "#102a43" } } 
-          },
-          camera: { eye: { x: 1.8, y: -1.5, z: 1.15 } }
+          xaxis: { title: { text: "Temp. Rack (°C)", font: { size: 11, color: "#1e293b" } } },
+          yaxis: { title: { text: "Uso CPU (%)", font: { size: 11, color: "#1e293b" } } },
+          zaxis: { title: { text: "Potencia HVAC (%)", font: { size: 11, color: "#1e293b" } } },
+          camera: { eye: { x: 1.7, y: -1.6, z: 1.2 } }
         },
-        margin: { l: 30, r: 30, b: 30, t: 40 },
+        margin: { l: 20, r: 20, b: 20, t: 20 },
         paper_bgcolor: "#ffffff"
       };
 
-      Plotly.newPlot("plotSuperficie3D", [trace], layout, { responsive: true });
+      Plotly.newPlot("plotSuperficie3D", [trace], layout, { responsive: true, displayModeBar: false });
       this.superficieCargada = true;
       this.actualizarStatus("Superficie 3D calculada exitosamente.", false);
     } catch (err) {
@@ -659,274 +765,12 @@ const app = {
     }
   },
 
-  // Ejecución del Algoritmo Genético
-  async ejecutarAlgoritmoGenetico() {
-    const poblacion = parseInt(document.getElementById("gaPoblacion").value) || 25;
-    const generaciones = parseInt(document.getElementById("gaGeneraciones").value) || 25;
-    const tasaMutacionPct = parseFloat(document.getElementById("gaTasaMutacion")?.value) || 20.0;
-    const tasaMutacion = Math.max(0.01, Math.min(0.5, tasaMutacionPct / 100.0));
-    const tempFija = parseFloat(document.getElementById("gaTempFija")?.value) || 18.0;
-
-    const btn = document.getElementById("btnEjecutarGA");
-    btn.disabled = true;
-    btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Optimizando...`;
-    this.actualizarStatus(`Ejecutando GA: Población ${poblacion}, Gen ${generaciones}, Mutación ${(tasaMutacion * 100).toFixed(0)}%...`, true);
-
-    try {
-      const res = await fetch("/api/optimizar-genetico", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          poblacion,
-          generaciones,
-          tasa_mutacion: tasaMutacion,
-          temperatura_fija: tempFija
-        })
-      });
-      const data = await res.json();
-      this.ultimoResultadoGA = data;
-
-      // Renderizar KPIs (kWh arriba y porcentaje abajo)
-      const kwhAhorro = data.ahorro_kwh_diario !== undefined 
-        ? data.ahorro_kwh_diario.toFixed(1) 
-        : ((data.consumo_kwh_estandar || 0) - (data.consumo_kwh_optimizado || 0)).toFixed(1);
-      const elKwh = document.getElementById("gaAhorroKwh");
-      if (elKwh) elKwh.textContent = `${kwhAhorro} kWh/día`;
-      const elPct = document.getElementById("gaPorcentajeAhorro");
-      if (elPct) elPct.textContent = `${data.ahorro_porcentaje.toFixed(1)} % de Ahorro`;
-      const elUsd = document.getElementById("gaAhorroDolares");
-      if (elUsd) elUsd.textContent = `$ ${data.ahorro_estimado_usd_mes.toFixed(0)} USD/mes`;
-
-      // Reflejar la temperatura fija en la columna de la tabla
-      this.actualizarTemperaturaFijaComparacion(tempFija);
-
-      // Actualizar tabla de temperaturas objetivo óptimas
-      const listaTemperaturas = data.temperaturas_objetivo_optimas || data.setpoints_optimos || [];
-      listaTemperaturas.forEach((sp, idx) => {
-        const el = document.getElementById(`sp${idx}`);
-        if (el) el.textContent = `${sp.toFixed(2)} °C`;
-      });
-
-      // Actualizar métricas de consumo y gasto del Algoritmo Genético (AG)
-      const elConsumoOptDia = document.getElementById("lblConsumoOptDiaKwh");
-      if (elConsumoOptDia && data.consumo_kwh_optimizado !== undefined) {
-        elConsumoOptDia.textContent = `${data.consumo_kwh_optimizado.toFixed(1)} kWh`;
-      }
-      const elGastoDiarioOpt = document.getElementById("lblGastoDiarioOpt");
-      if (elGastoDiarioOpt && data.costo_diario_optimizado !== undefined) {
-        elGastoDiarioOpt.textContent = `$ ${data.costo_diario_optimizado.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD/día`;
-      }
-      const elConsumoOptMes = document.getElementById("lblConsumoOptMesKwh");
-      if (elConsumoOptMes && data.consumo_kwh_optimizado !== undefined) {
-        const consumoMesOpt = Math.round(data.consumo_kwh_optimizado * 30.0).toLocaleString("en-US");
-        elConsumoOptMes.textContent = `${consumoMesOpt} kWh`;
-      }
-      const elGastoMensualOpt = document.getElementById("lblGastoMensualOpt");
-      if (elGastoMensualOpt && data.costo_diario_optimizado !== undefined) {
-        const gastoMesOpt = (data.costo_diario_optimizado * 30.0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        elGastoMensualOpt.textContent = `$ ${gastoMesOpt} USD/mes`;
-      }
-
-      // Graficar curva de convergencia exactamente como en el gráfico del docente
-      this.renderizarGraficoGA(data.historial_mejor, data.historial_promedio);
-
-      // Actualizar tabla de reglas con la solución evolucionada
-      if (data.reglas && data.reglas.length > 0) {
-        this.reglas = data.reglas;
-        this.renderizarTablaReglas(this.reglas);
-        const badgeReglas = document.getElementById("badgeReglasCount");
-        if (badgeReglas) badgeReglas.textContent = this.reglas.length;
-      }
-
-      // Sincronizar superficie 3D con la nueva tabla de reglas evolucionada
-      this.superficieCargada = false;
-      const tabSuperficie = document.getElementById("tabSuperficie");
-      if (tabSuperficie && tabSuperficie.classList.contains("active")) {
-        this.cargarSuperficie3D();
-      }
-
-      this.actualizarStatus("Optimización genética completada con éxito.", false);
-    } catch (err) {
-      console.error("Error en optimización genética:", err);
-      this.actualizarStatus("Error al ejecutar algoritmo genético.", false);
-    } finally {
-      btn.disabled = false;
-      btn.innerHTML = `<i class="fa-solid fa-play"></i> Iniciar Optimización Genética`;
-    }
-  },
-
-  // Renderizar gráfico de convergencia con Chart.js
-  renderizarGraficoGA(mejorFitness, promedioFitness) {
-    const ctx = document.getElementById("chartConvergenciaGA").getContext("2d");
-    const labels = mejorFitness.map((_, i) => `G${i + 1}`);
-
-    if (this.graficoGA) {
-      this.graficoGA.destroy();
-    }
-
-    this.graficoGA = new Chart(ctx, {
-      type: "line",
-      data: {
-        labels: labels,
-        datasets: [
-          {
-            label: "Menor Costo USD al Día",
-            data: mejorFitness,
-            borderColor: "#0000ff",
-            backgroundColor: "#0000ff",
-            borderWidth: 2,
-            pointRadius: 4,
-            pointHoverRadius: 6,
-            tension: 0
-          },
-          {
-            label: "Costo Promedio Población USD al Día",
-            data: promedioFitness,
-            borderColor: "#008000",
-            borderDash: [5, 5],
-            borderWidth: 1.8,
-            pointRadius: 0,
-            tension: 0
-          }
-        ]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: {
-          x: {
-            title: { display: true, text: "Generación Evolutiva", font: { size: 10 } },
-            grid: { color: "#eef2f6" }
-          },
-          y: {
-            title: { display: true, text: "Valor Fitness", font: { size: 10 } },
-            grid: { color: "#eef2f6" }
-          }
-        },
-        plugins: {
-          legend: {
-            position: "bottom",
-            labels: { boxWidth: 15, font: { size: 10 } }
-          },
-          tooltip: {
-            callbacks: {
-              label: function(context) {
-                const label = context.dataset.label || "";
-                const val = context.parsed.y;
-                return `${label}: ${val} (Costo: $ ${Math.abs(val).toFixed(2)} USD/día)`;
-              }
-            }
-          }
-        }
-      }
-    });
-  },
-
-  // Cálculo termodinámico y económico evaluado exclusivamente en el backend Python
-  async calcularConsumoYGastoFijo(tempFija) {
-    try {
-      const res = await fetch(`/api/evaluar-temp-fija?temp=${tempFija}`);
-      if (res.ok) {
-        return await res.json();
-      }
-    } catch (err) {
-      console.error("Error al consultar evaluación de temperatura fija en el backend:", err);
-    }
-    return null;
-  },
-
-  // Actualizar visualmente la columna fija, etiquetas de consumo y gasto mensual
-  async actualizarTemperaturaFijaComparacion(tempFija) {
-    const val = parseFloat(tempFija) || 18.0;
-    const tempFormateada = `${val.toFixed(1)} °C`;
-    document.querySelectorAll(".col-temp-fija").forEach(td => {
-      td.textContent = tempFormateada;
-    });
-
-    const metricas = await this.calcularConsumoYGastoFijo(val);
-    if (metricas) {
-      const lblDia = document.getElementById("lblConsumoFijoDiaKwh");
-      if (lblDia) lblDia.textContent = `${metricas.consumo_diario_kwh.toFixed(1)} kWh`;
-
-      const lblGastoDia = document.getElementById("lblGastoDiarioFijo");
-      if (lblGastoDia) {
-        lblGastoDia.textContent = `$ ${metricas.costo_diario_usd.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD/día`;
-      }
-
-      const lblMes = document.getElementById("lblConsumoFijoMesKwh");
-      if (lblMes) {
-        const consumoMesFormateado = Math.round(metricas.consumo_mensual_kwh).toLocaleString("en-US");
-        lblMes.textContent = `${consumoMesFormateado} kWh`;
-      }
-
-      const lblGasto = document.getElementById("lblGastoMensualFijo");
-      if (lblGasto) {
-        lblGasto.textContent = `$ ${metricas.costo_mensual_usd.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD/mes`;
-      }
-    }
-
-    // Si ya se ejecutó el GA previamente, recalcular el ahorro en tiempo real
-    if (this.ultimoResultadoGA && metricas) {
-      const consumoOpt = this.ultimoResultadoGA.consumo_kwh_optimizado || 0;
-      const costoOptDiario = this.ultimoResultadoGA.costo_diario_optimizado || 0;
-      const kwhAhorro = (metricas.consumo_diario_kwh - consumoOpt).toFixed(1);
-      const ahorroDiarioUsd = metricas.costo_diario_usd - costoOptDiario;
-      const pctAhorro = metricas.costo_diario_usd > 0 
-        ? ((ahorroDiarioUsd / metricas.costo_diario_usd) * 100).toFixed(1) 
-        : "0.0";
-      const ahorroMensualUsd = Math.round(ahorroDiarioUsd * 30);
-
-      const elKwh = document.getElementById("gaAhorroKwh");
-      if (elKwh) elKwh.textContent = `${kwhAhorro} kWh/día`;
-      const elPct = document.getElementById("gaPorcentajeAhorro");
-      if (elPct) elPct.textContent = `${pctAhorro} % de Ahorro`;
-      const elUsd = document.getElementById("gaAhorroDolares");
-      if (elUsd) elUsd.textContent = `$ ${ahorroMensualUsd.toLocaleString()} USD/mes`;
-
-      const elConsumoOptDia = document.getElementById("lblConsumoOptDiaKwh");
-      if (elConsumoOptDia && consumoOpt) elConsumoOptDia.textContent = `${consumoOpt.toFixed(1)} kWh`;
-      const elGastoDiarioOpt = document.getElementById("lblGastoDiarioOpt");
-      if (elGastoDiarioOpt && costoOptDiario) {
-        elGastoDiarioOpt.textContent = `$ ${costoOptDiario.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD/día`;
-      }
-      const elConsumoOptMes = document.getElementById("lblConsumoOptMesKwh");
-      if (elConsumoOptMes && consumoOpt) {
-        elConsumoOptMes.textContent = `${Math.round(consumoOpt * 30.0).toLocaleString("en-US")} kWh`;
-      }
-      const elGastoMensualOpt = document.getElementById("lblGastoMensualOpt");
-      if (elGastoMensualOpt && costoOptDiario) {
-        elGastoMensualOpt.textContent = `$ ${(costoOptDiario * 30.0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD/mes`;
-      }
-    }
-  },
-
-  // Exportar reglas minadas a CSV
-  exportarReglasCSV() {
-    if (!this.reglas || this.reglas.length === 0) {
-      alert("No hay reglas disponibles para exportar.");
-      return;
-    }
-
-    let csvContent = "data:text/csv;charset=utf-8,ID,Regla,Confianza,Soporte,Nombre\n";
-    this.reglas.forEach((r, i) => {
-      csvContent += `${i + 1},"${r.texto_regla}",${r.confianza},${r.soporte},${r.nombre}\n`;
-    });
-
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", "reglas_control_difuso.csv");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  },
-
-  // Actualizar estado en la barra inferior
-  actualizarStatus(mensaje, cargando = false) {
+  // Barra de estado inferior
+  actualizarStatus(msg, cargando = false) {
     const el = document.getElementById("statusbarText");
     const dot = document.getElementById("statusDot");
-    el.textContent = mensaje;
-    dot.style.backgroundColor = cargando ? "#d97706" : "#198754";
+    if (el) el.textContent = msg;
+    if (dot) dot.style.backgroundColor = cargando ? "#f59e0b" : "#10b981";
   }
 };
 

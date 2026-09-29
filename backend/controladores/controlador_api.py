@@ -9,11 +9,20 @@ def crear_controlador_api(datacenter, ruta_archivo_sensores_csv: str) -> Bluepri
 
     @controlador.route("/estado", methods=["GET"])
     def obtener_estado_sistema():
+        sim_data = datacenter.obtener_simulacion_actual()
         return jsonify({
             "dataset_existe": os.path.exists(ruta_archivo_sensores_csv),
             "total_registros": datacenter.sensores_servidores.numero_total_registros,
             "total_reglas": len(datacenter.lista_reglas_activas),
-            "reglas": datacenter.lista_reglas_activas
+            "reglas": datacenter.lista_reglas_activas,
+            "horas": sim_data["horas"],
+            "serie_temp_exterior": sim_data["serie_temp_exterior"],
+            "serie_uso_cpu": sim_data["serie_uso_cpu"],
+            "serie_temperaturas": sim_data["serie_temperaturas"],
+            "serie_potencias": sim_data["serie_potencias"],
+            "serie_temperaturas_estandar": sim_data["serie_temperaturas_estandar"],
+            "serie_potencias_estandar": sim_data["serie_potencias_estandar"],
+            "kpis": sim_data["kpis"]
         })
 
     @controlador.route("/subir-dataset", methods=["POST"])

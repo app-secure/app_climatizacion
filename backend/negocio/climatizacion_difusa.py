@@ -133,6 +133,7 @@ class ClimatizacionDifusa:
                 },
                 "variable_consecuente": "potencia_enfriamiento",
                 "etiqueta_consecuente": etiqueta_salida,
+                "nivel": int(gen_salida),
                 "soporte": 1.0,
                 "confianza": 1.0,
                 "peso": 1.0,

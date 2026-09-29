@@ -48,6 +48,7 @@ class ClimatizacionDatacenter:
         )
 
         self.lista_reglas_activas = []
+        self.tabla_reglas_actual = list(TABLA_REGLAS_POR_DEFECTO)
 
         # Paso 2: Cargar tabla heurística por defecto al arrancar el sistema [PROPUESTA]
         self.cargar_tabla_reglas_controlador(TABLA_REGLAS_POR_DEFECTO)
@@ -63,9 +64,49 @@ class ClimatizacionDatacenter:
         genética carga la mejor solución encontrada para sincronizar /api/inferencia
         y /api/superficie-3d.
         """
+        self.tabla_reglas_actual = list(tabla_36_genes)
         reglas_descriptivas = self.climatizacion_difusa.cargar_desde_tabla_genes(tabla_36_genes)
         self.lista_reglas_activas = reglas_descriptivas
         return reglas_descriptivas
+
+    def obtener_simulacion_actual(self, temperatura_fija: float = 18.0) -> dict:
+        """
+        Retorna la simulación dinámica en 96 pasos y los KPIs de la tabla activa vs. termostato fijo.
+        """
+        tabla = getattr(self, "tabla_reglas_actual", TABLA_REGLAS_POR_DEFECTO)
+        _, det_opt = self.optimizacion_energetica.simular_dia(tabla)
+        det_base = self.optimizacion_energetica.simular_termostato_fijo(temperatura_fija)
+
+        costo_base = det_base["costo_diario"]
+        costo_opt = det_opt["costo_diario"]
+        ahorro_diario = round(costo_base - costo_opt, 2)
+        pct_ahorro = round((ahorro_diario / costo_base) * 100.0, 1) if costo_base > 0 else 0.0
+
+        perfil = self.optimizacion_energetica.perfil_96_pasos
+        horas = [round(i * 0.25, 2) for i in range(len(perfil))]
+
+        return {
+            "horas": horas,
+            "serie_temp_exterior": [round(float(x), 2) for x in perfil["temperatura_ambiental_exterior_celsius"]],
+            "serie_uso_cpu": [round(float(x), 1) for x in perfil["porcentaje_uso_procesador"]],
+            "serie_temperaturas": det_opt["temperaturas"],
+            "serie_potencias": det_opt["potencias"],
+            "serie_temperaturas_estandar": det_base["temperaturas"],
+            "serie_potencias_estandar": det_base["potencias"],
+            "kpis": {
+                "costo_diario": det_opt["costo_diario"],
+                "costo_diario_estandar": det_base["costo_diario"],
+                "consumo_kwh": det_opt["consumo_kwh"],
+                "consumo_kwh_estandar": det_base["consumo_kwh"],
+                "ahorro_diario": ahorro_diario,
+                "porcentaje_ahorro": pct_ahorro,
+                "ahorro_porcentaje": pct_ahorro,
+                "temp_maxima": det_opt["temp_maxima"],
+                "temp_minima": det_opt["temp_minima"],
+                "temp_promedio": det_opt["temp_promedio"],
+                "violaciones_monotonia": det_opt.get("violaciones_monotonia", 0)
+            }
+        }
 
     def evaluar_punto_operacion(self, temperatura_rack: float, porcentaje_cpu: float,
                                 temperatura_exterior: float) -> dict:

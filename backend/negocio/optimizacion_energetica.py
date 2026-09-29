@@ -387,6 +387,27 @@ class OptimizacionEnergetica:
             "temperaturas_resultantes": temperaturas_promedio_franjas,
             "serie_temperaturas": detalles_opt["temperaturas"],
             "serie_potencias": detalles_opt["potencias"],
+            "serie_temperaturas_estandar": detalles_estandar["temperaturas"],
+            "serie_potencias_estandar": detalles_estandar["potencias"],
+            "serie_temp_exterior": [round(float(x), 2) for x in self.perfil_96_pasos["temperatura_ambiental_exterior_celsius"]],
+            "serie_uso_cpu": [round(float(x), 1) for x in self.perfil_96_pasos["porcentaje_uso_procesador"]],
+            "horas": [round(i * DT_HORAS, 2) for i in range(PASOS_SIMULACION)],
+            "temp_maxima": detalles_opt.get("temp_maxima"),
+            "temp_minima": detalles_opt.get("temp_minima"),
+            "temp_promedio": detalles_opt.get("temp_promedio"),
+            "kpis": {
+                "costo_diario": detalles_opt["costo_diario"],
+                "costo_diario_estandar": detalles_estandar["costo_diario"],
+                "consumo_kwh": detalles_opt["consumo_kwh"],
+                "consumo_kwh_estandar": detalles_estandar["consumo_kwh"],
+                "ahorro_diario": ahorro_diario_dolares,
+                "porcentaje_ahorro": porcentaje_ahorro,
+                "ahorro_porcentaje": porcentaje_ahorro,
+                "temp_maxima": detalles_opt.get("temp_maxima"),
+                "temp_minima": detalles_opt.get("temp_minima"),
+                "temp_promedio": detalles_opt.get("temp_promedio"),
+                "violaciones_monotonia": detalles_opt.get("violaciones_monotonia", 0)
+            },
             "mejor_tabla_reglas": resultado_ga["mejor_tabla_reglas"],
             "mejor_aptitud": resultado_ga["mejor_aptitud"]
         }
