@@ -63,6 +63,29 @@ import numpy as np
 TAMANO_POBLACION_DEFAULT = 20        # Cantidad fija N de individuos en la población
 NUMERO_GENERACIONES_DEFAULT = 20     # Número de iteraciones del ciclo evolutivo
 PROBABILIDAD_MUTACION_DEFAULT = 0.20 # Probabilidad fija de mutación por generación
+FACTOR_DELTA_ESCALADO_APTITUD = 0.1  # Fracción delta para escalado relativo de aptitud en ruleta [PROPUESTA]
+
+"""
+NOTA METODOLÓGICA SOBRE LA FUNCIÓN DE APTITUD (FITNESS):
+1. Aptitud Absoluta Externa (reportada como 'mejor_aptitud'):
+     mejor_aptitud = 1.0 / (1.0 + costo_total)
+   Donde costo_total = costo_electrico_usd + penalizacion_termica_usd + penalizacion_monotonia.
+   Es una métrica normalizada en (0, 1] e independiente de la generación o corrida,
+   ideal para reportar el resultado final, comparar soluciones y calcular ahorros.
+
+2. Aptitud Escalada Relativa para Selección por Ruleta (evaluar_poblacion) [PROPUESTA]:
+     aptitud_ruleta_i = max(0.001, (costo_max - costo_i) + delta)
+     donde delta = (costo_max - costo_min) * FACTOR_DELTA_ESCALADO_APTITUD (0.1)
+   Justificación metodológica:
+   En problemas de minimización con costos elevados (ej. 50 a 100 USD), la función
+   1/(1 + costo) comprime todas las aptitudes en una franja diminuta (ej. entre 0.010 y 0.015).
+   Si la ruleta girara sobre estos valores directos, las probabilidades relativas de selección
+   serían casi idénticas (p_i ≈ 1/N), colapsando la presión selectiva a un muestreo uniforme
+   (deriva genética sin optimización real). El escalamiento relativo por generación
+   re-expande el rango dinámico asignando mayor probabilidad a los individuos de menor costo,
+   mientras el parámetro delta garantiza una probabilidad basal no nula para los peores,
+   evitando la pérdida prematura de diversidad genética.
+"""
 
 
 class AlgoritmoGenetico:
@@ -126,7 +149,7 @@ class AlgoritmoGenetico:
 
         costo_max = float(max(costos))
         costo_min = float(min(costos))
-        delta = (costo_max - costo_min) * 0.1
+        delta = (costo_max - costo_min) * FACTOR_DELTA_ESCALADO_APTITUD
 
         aptitudes = [
             max(0.001, (costo_max - c) + delta)
@@ -196,30 +219,20 @@ class AlgoritmoGenetico:
             poblacion_acumulada[indice_individuo] = individuo_a_mutar
 
     # --------------------------------------------------------------------------
-    # PASO 6: Selección de sobrevivientes con Elitismo de 1 individuo
+    # PASO 6: Selección de sobrevivientes al azar puro hasta N
     # --------------------------------------------------------------------------
     def seleccion_sobrevivientes(self, poblacion_acumulada: list, aptitudes_acumuladas: list, tamano_n: int):
         """
-        Vuelve al tamaño N eliminando individuos AL AZAR, asegurando elitismo de 1 individuo:
-        se preserva siempre intacto al mejor individuo de la ronda actual antes de descartar al azar.
+        Vuelve al tamaño N eliminando individuos AL AZAR puro (sin elitismo generacional),
+        conforme al procedimiento enseñado en clase donde la poda de la población extendida
+        (N padres + 2 hijos) se realiza descartando aleatoriamente hasta retornar a N.
+        Nota: El mejor individuo histórico global no se pierde porque se almacena
+        por separado en una variable dedicada dentro del método optimizar().
         """
-        if len(poblacion_acumulada) <= tamano_n:
-            return
-
-        # Elitismo: aislar al mejor individuo para que nunca sea eliminado
-        indice_mejor = int(np.argmax(aptitudes_acumuladas))
-        mejor_individuo = poblacion_acumulada.pop(indice_mejor)
-        mejor_aptitud = aptitudes_acumuladas.pop(indice_mejor)
-
-        # Reducir el resto de la población al azar hasta tamano_n - 1
-        while len(poblacion_acumulada) > (tamano_n - 1):
+        while len(poblacion_acumulada) > tamano_n:
             indice_a_eliminar = random.randrange(len(poblacion_acumulada))
             del poblacion_acumulada[indice_a_eliminar]
             del aptitudes_acumuladas[indice_a_eliminar]
-
-        # Reincorporar al individuo élite
-        poblacion_acumulada.append(mejor_individuo)
-        aptitudes_acumuladas.append(mejor_aptitud)
 
     # --------------------------------------------------------------------------
     # PASO 7: Ciclo evolutivo completo y parada
@@ -265,7 +278,7 @@ class AlgoritmoGenetico:
                     mejor_individuo_historico = list(ind)
                     mejores_detalles_historicos = cache_evaluaciones[tuple(ind)]
 
-            # Paso 6: Selección de sobrevivientes al azar con preservación del élite
+            # Paso 6: Selección de sobrevivientes al azar puro hasta N
             self.seleccion_sobrevivientes(poblacion, aptitudes, self.tamano_poblacion)
 
             # Registrar series históricas

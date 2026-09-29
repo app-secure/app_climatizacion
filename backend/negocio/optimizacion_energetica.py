@@ -42,54 +42,51 @@ LIMITE_DELL_CELSIUS = 30.0       # Límite de derating térmico y ventilación 1
 # Factor para escalar la penalización por duración del paso respecto al modelo original de 6 horas
 FACTOR_ESCALA_PENALIZACION = DT_HORAS / 6.0  # 0.25 / 6.0 = 1/24
 
+# Coeficientes del modelo de COP del Chiller [VERIFICAR FUENTE]
+COP_BASE = 2.85                  # COP nominal a T_rack=18°C y T_ext=20°C [VERIFICAR FUENTE]
+COP_COEF_RACK = 0.24             # Incremento absoluto en COP por cada °C de retorno (aprox. 8.4% / °C sobre 2.85) [VERIFICAR FUENTE]
+COP_COEF_EXT = 0.04              # Reducción absoluta en COP por cada °C de T_ext (aprox. 1.4% / °C sobre 2.85) [VERIFICAR FUENTE]
+COP_MIN = 2.2                    # Cota inferior de saturación del COP en ola de calor extrema [VERIFICAR FUENTE]
+COP_MAX = 5.5                    # Cota superior de saturación del COP con aire frío exterior [VERIFICAR FUENTE]
+
+# Coeficientes de penalización térmica [VERIFICAR FUENTE]
+COEF_PENALIZACION_DELL = 80.0    # Coeficiente de penalización cuadrática por sobrecalentamiento crítico > 30 °C ($/°C²) [VERIFICAR FUENTE]
+COEF_PENALIZACION_ASHRAE = 25.0  # Coeficiente de penalización lineal por exceder banda ASHRAE > 27 °C ($/°C) [VERIFICAR FUENTE]
+
+# Penalización por inversión monótona en reglas del genético [VERIFICAR FUENTE]
+PENALIZACION_MONOTONIA_USD = 5.0 # Recargo punitivo en USD por cada salto invertido en la tabla de reglas [VERIFICAR FUENTE]
+
+# Potencia conservadora de respaldo ante fallos de defusificación
+POTENCIA_RESPALDO_DEFUS_FALLIDA = 85.0 # Potencia fija de seguridad aplicada si falla el cómputo por centroide (%) [VERIFICAR FUENTE]
+
+# Parámetros del termostato de línea base proporcional [PROPUESTA]
+POTENCIA_TERMOSTATO_MINIMA = 15.0 # Ventilación base mínima continua cuando T <= consigna (%) [PROPUESTA]
+KP_TERMOSTATO = 20.0             # Ganancia proporcional del termostato ante desviaciones de temperatura (%/°C) [PROPUESTA]
+
+# Factor de escalado de aptitud relativa en selección de ruleta [PROPUESTA]
+FACTOR_DELTA_ESCALADO_APTITUD = 0.1 # Fracción del rango de costos sumada como piso para evitar probabilidades nulas [PROPUESTA]
+
 
 class OptimizacionEnergetica:
     """
     Gestiona la simulación de lazo cerrado, la evaluación de aptitud para el genético
     y la comparación contra la línea base de termostato fijo a 18 °C.
+    Reutiliza directamente las variables y funciones de pertenencia de ClimatizacionDifusa
+    para garantizar una única fuente de verdad en el sistema.
     """
 
     def __init__(self, controlador_difuso=None):
+        if controlador_difuso is None:
+            from .climatizacion_difusa import ClimatizacionDifusa
+            controlador_difuso = ClimatizacionDifusa().controlador_difuso
         self.controlador_difuso = controlador_difuso
         self.algoritmo_genetico = AlgoritmoGenetico()
 
-        # Construir variables skfuzzy una sola vez en memoria
-        self._inicializar_variables_difusas_estaticas()
-
-        # Cargar perfil de 96 pasos desde datos.csv
-        self.perfil_96_pasos = self._cargar_perfil_96_pasos()
-
-    def _inicializar_variables_difusas_estaticas(self):
-        """
-        Instancia los objetos Antecedent y Consequent de skfuzzy una sola vez.
-        Las funciones de pertenencia permanecen fijas conforme al diseño.
-        """
-        universo_rack = np.arange(10.0, 45.5, 0.5)
-        universo_cpu = np.arange(0.0, 101.0, 1.0)
-        universo_ext = np.arange(0.0, 45.5, 0.5)
-        universo_enf = np.arange(0.0, 101.0, 1.0)
-
-        self.var_rack = ctrl.Antecedent(universo_rack, "temperatura_rack")
-        self.var_rack["BAJA"] = fuzz.trapmf(universo_rack, [10.0, 10.0, 14.5, 18.0])
-        self.var_rack["OPTIMA"] = fuzz.trimf(universo_rack, [16.5, 22.5, 27.0])
-        self.var_rack["ALTA"] = fuzz.trimf(universo_rack, [24.5, 28.5, 30.5])
-        self.var_rack["CRITICA"] = fuzz.trapmf(universo_rack, [29.5, 31.0, 45.0, 45.0])
-
-        self.var_cpu = ctrl.Antecedent(universo_cpu, "uso_cpu")
-        self.var_cpu["BAJO"] = fuzz.trapmf(universo_cpu, [0.0, 0.0, 20.0, 35.0])
-        self.var_cpu["MEDIO"] = fuzz.trimf(universo_cpu, [25.0, 50.0, 75.0])
-        self.var_cpu["ALTO"] = fuzz.trapmf(universo_cpu, [65.0, 80.0, 100.0, 100.0])
-
-        self.var_ext = ctrl.Antecedent(universo_ext, "temperatura_exterior")
-        self.var_ext["FRIO"] = fuzz.trapmf(universo_ext, [0.0, 0.0, 12.0, 17.0])
-        self.var_ext["TEMPLADO"] = fuzz.trimf(universo_ext, [14.0, 20.0, 26.0])
-        self.var_ext["CALIDO"] = fuzz.trapmf(universo_ext, [23.0, 28.0, 45.0, 45.0])
-
-        self.var_enf = ctrl.Consequent(universo_enf, "potencia_enfriamiento", defuzzify_method="centroid")
-        self.var_enf["MINIMA"] = fuzz.trapmf(universo_enf, [0.0, 0.0, 15.0, 30.0])
-        self.var_enf["MEDIA"] = fuzz.trimf(universo_enf, [20.0, 45.0, 65.0])
-        self.var_enf["ALTA"] = fuzz.trimf(universo_enf, [55.0, 75.0, 90.0])
-        self.var_enf["MAXIMA"] = fuzz.trapmf(universo_enf, [80.0, 88.0, 100.0, 100.0])
+        # Reutilizar exactamente las variables y funciones de pertenencia de ClimatizacionDifusa
+        self.var_rack = self.controlador_difuso.variables_entrada["temperatura_rack"]
+        self.var_cpu = self.controlador_difuso.variables_entrada["uso_cpu"]
+        self.var_ext = self.controlador_difuso.variables_entrada["temperatura_exterior"]
+        self.var_enf = self.controlador_difuso.variables_salida["potencia_enfriamiento"]
 
         self.etiquetas_salida = ["MINIMA", "MEDIA", "ALTA", "MAXIMA"]
         self.antecedentes_36 = list(itertools.product(
@@ -97,6 +94,9 @@ class OptimizacionEnergetica:
             ["BAJO", "MEDIO", "ALTO"],
             ["FRIO", "TEMPLADO", "CALIDO"]
         ))
+
+        # Cargar perfil de 96 pasos desde datos.csv
+        self.perfil_96_pasos = self._cargar_perfil_96_pasos()
 
     def _cargar_perfil_96_pasos(self) -> pd.DataFrame:
         """
@@ -169,7 +169,7 @@ class OptimizacionEnergetica:
                 potencia_enfriamiento = float(simulador.output["potencia_enfriamiento"])
             except Exception:
                 # Potencia conservadora alta si falla la defusificación
-                potencia_enfriamiento = 85.0
+                potencia_enfriamiento = POTENCIA_RESPALDO_DEFUS_FALLIDA
 
             # Actualización de temperatura mediante modelo térmico dinámico
             calor_generado = CALOR_BASE_KW + CALOR_CPU_KW * (uso_cpu / 100.0) + K_EXT * (temp_exterior - temp_actual)
@@ -178,7 +178,11 @@ class OptimizacionEnergetica:
             temp_actual += d_temp
 
             # Modelo de consumo y costo del Chiller (COP variable)
-            cop = float(np.clip(2.85 + 0.24 * (temp_actual - 18.0) - 0.04 * (temp_exterior - 20.0), 2.2, 5.5))
+            cop = float(np.clip(
+                COP_BASE + COP_COEF_RACK * (temp_actual - 18.0) - COP_COEF_EXT * (temp_exterior - 20.0),
+                COP_MIN,
+                COP_MAX
+            ))
             potencia_electrica_kw = calor_extraido / cop
             consumo_kwh_paso = potencia_electrica_kw * DT_HORAS
             costo_electrico_paso = consumo_kwh_paso * TARIFA_ELECTRICA_USD_KWH
@@ -188,9 +192,9 @@ class OptimizacionEnergetica:
 
             # Penalización térmica escalada por duración del paso
             if temp_actual > LIMITE_DELL_CELSIUS:
-                penalizacion_paso = 80.0 * ((temp_actual - LIMITE_DELL_CELSIUS) ** 2) * FACTOR_ESCALA_PENALIZACION
+                penalizacion_paso = COEF_PENALIZACION_DELL * ((temp_actual - LIMITE_DELL_CELSIUS) ** 2) * FACTOR_ESCALA_PENALIZACION
             elif temp_actual > LIMITE_ASHRAE_CELSIUS:
-                penalizacion_paso = 25.0 * (temp_actual - LIMITE_ASHRAE_CELSIUS) * FACTOR_ESCALA_PENALIZACION
+                penalizacion_paso = COEF_PENALIZACION_ASHRAE * (temp_actual - LIMITE_ASHRAE_CELSIUS) * FACTOR_ESCALA_PENALIZACION
             else:
                 penalizacion_paso = 0.0
 
@@ -218,7 +222,7 @@ class OptimizacionEnergetica:
                 if g_critica < g_alta:
                     violaciones_monotonia += 1
 
-        penalizacion_monotonia = violaciones_monotonia * 5.0
+        penalizacion_monotonia = violaciones_monotonia * PENALIZACION_MONOTONIA_USD
         costo_total = costo_electrico_acumulado + penalizacion_termica_acumulada + penalizacion_monotonia
         aptitud = 1.0 / (1.0 + costo_total)
 
@@ -243,8 +247,8 @@ class OptimizacionEnergetica:
     def simular_termostato_fijo(self, temp_consigna: float = 18.0) -> dict:
         """
         Simula la línea base de un termostato proporcional fijo a 18.0 °C [PROPUESTA].
-        Aplica 15% de ventilación mínima si T <= 18°C y modula proporcionalmente al error
-        si T > 18°C (Kp = 20 %/°C) hasta el 100%, evitando oscilaciones severas.
+        Aplica potencia mínima base si T <= consigna y modula proporcionalmente al error
+        si T > consigna (Kp %/°C) hasta el 100%, evitando oscilaciones severas.
         """
         temp_actual = T_INICIAL_CELSIUS
         costo_electrico_acumulado = 0.0
@@ -263,9 +267,13 @@ class OptimizacionEnergetica:
 
             # Lógica de control proporcional del termostato con potencia base mínima
             if temp_actual <= temp_consigna:
-                potencia_termostato = 15.0
+                potencia_termostato = POTENCIA_TERMOSTATO_MINIMA
             else:
-                potencia_termostato = float(np.clip(15.0 + 20.0 * (temp_actual - temp_consigna), 15.0, 100.0))
+                potencia_termostato = float(np.clip(
+                    POTENCIA_TERMOSTATO_MINIMA + KP_TERMOSTATO * (temp_actual - temp_consigna),
+                    POTENCIA_TERMOSTATO_MINIMA,
+                    100.0
+                ))
 
             # Dinámica térmica
             calor_generado = CALOR_BASE_KW + CALOR_CPU_KW * (uso_cpu / 100.0) + K_EXT * (temp_exterior - temp_actual)
@@ -273,7 +281,11 @@ class OptimizacionEnergetica:
             temp_actual += DT_HORAS * (calor_generado - calor_extraido) / CAPACIDAD_TERMICA
 
             # Consumo y costo con COP
-            cop = float(np.clip(2.85 + 0.24 * (temp_actual - 18.0) - 0.04 * (temp_exterior - 20.0), 2.2, 5.5))
+            cop = float(np.clip(
+                COP_BASE + COP_COEF_RACK * (temp_actual - 18.0) - COP_COEF_EXT * (temp_exterior - 20.0),
+                COP_MIN,
+                COP_MAX
+            ))
             potencia_elec_kw = calor_extraido / cop
             consumo_paso = potencia_elec_kw * DT_HORAS
             costo_electrico_acumulado += consumo_paso * TARIFA_ELECTRICA_USD_KWH
@@ -281,9 +293,9 @@ class OptimizacionEnergetica:
 
             # Penalización escalada
             if temp_actual > LIMITE_DELL_CELSIUS:
-                penalizacion_paso = 80.0 * ((temp_actual - LIMITE_DELL_CELSIUS) ** 2) * FACTOR_ESCALA_PENALIZACION
+                penalizacion_paso = COEF_PENALIZACION_DELL * ((temp_actual - LIMITE_DELL_CELSIUS) ** 2) * FACTOR_ESCALA_PENALIZACION
             elif temp_actual > LIMITE_ASHRAE_CELSIUS:
-                penalizacion_paso = 25.0 * (temp_actual - LIMITE_ASHRAE_CELSIUS) * FACTOR_ESCALA_PENALIZACION
+                penalizacion_paso = COEF_PENALIZACION_ASHRAE * (temp_actual - LIMITE_ASHRAE_CELSIUS) * FACTOR_ESCALA_PENALIZACION
             else:
                 penalizacion_paso = 0.0
 
