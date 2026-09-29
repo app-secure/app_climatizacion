@@ -11,6 +11,7 @@ const app = {
   miniGraficosFIS: {},
   superficieCargada: false,
   debounceTimer: null,
+  ultimaPotenciaZ: 43.3,
 
   // Inicialización al cargar la aplicación
   async init() {
@@ -84,6 +85,12 @@ const app = {
         Plotly.Plots.resize("plotSimulacionTemperatura");
         Plotly.Plots.resize("plotSimulacionPotenciaClima");
       }
+      if (document.getElementById("tabFIS").classList.contains("active")) {
+        if (this.curvasPertenencia) {
+          this.dibujarMiniCurvasFIS(this.curvasPertenencia);
+          this.dibujarCurvasCompletasChartJS(this.curvasPertenencia);
+        }
+      }
       if (document.getElementById("tabSuperficie").classList.contains("active")) {
         Plotly.Plots.resize("plotSuperficie3D");
       }
@@ -109,7 +116,13 @@ const app = {
         Plotly.Plots.resize("plotSimulacionPotenciaClima");
       }, 50);
     } else if (tabId === "tabFIS") {
-      setTimeout(() => this.actualizarConectoresSVG(), 50);
+      setTimeout(() => {
+        this.actualizarConectoresSVG();
+        if (this.curvasPertenencia) {
+          this.dibujarMiniCurvasFIS(this.curvasPertenencia);
+          this.dibujarCurvasCompletasChartJS(this.curvasPertenencia);
+        }
+      }, 60);
     } else if (tabId === "tabSuperficie") {
       if (!this.superficieCargada) {
         this.cargarSuperficie3D();
@@ -423,63 +436,182 @@ const app = {
     }
   },
 
-  // Dibujar mini curvas en los bloques del diagrama FIS
+  // Conversión hex a RGBA con canal alfa
+  hexToRgba(hex, alpha) {
+    let c = hex.replace("#", "");
+    if (c.length === 3) {
+      c = c.split("").map(ch => ch + ch).join("");
+    }
+    const num = parseInt(c, 16);
+    const r = (num >> 16) & 255;
+    const g = (num >> 8) & 255;
+    const b = num & 255;
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  },
+
+  // Obtener color semántico para cada conjunto difuso
+  obtenerColorConjunto(varKey, mfName, fallbackIdx) {
+    const mapaNombres = {
+      // Rack
+      "BAJA": "#0284c7",
+      "OPTIMA": "#16a34a",
+      "ALTA": "#f59e0b",
+      "CRITICA": "#dc2626",
+      // CPU
+      "BAJO": "#0284c7",
+      "MEDIO": "#f59e0b",
+      "ALTO": "#dc2626",
+      // Clima exterior
+      "FRIO": "#0284c7",
+      "TEMPLADO": "#f59e0b",
+      "CALIDO": "#dc2626",
+      // Potencia refrigeración
+      "MINIMA": "#16a34a",
+      "MEDIA": "#0284c7",
+      "MAXIMA": "#dc2626"
+    };
+    if (mapaNombres[mfName]) return mapaNombres[mfName];
+    const paleta = ["#0284c7", "#16a34a", "#f59e0b", "#dc2626"];
+    return paleta[fallbackIdx % paleta.length];
+  },
+
+  // Renderizado vectorial nativo de funciones de pertenencia en bloques FIS (Canvas 2D)
+  renderizarMiniCanvasVectorial(canvas, varData, varKey, valorActual) {
+    if (!canvas || !varData || !varData.x || !varData.conjuntos) return;
+
+    // Obtener dimensiones reales del contenedor
+    const rect = canvas.getBoundingClientRect();
+    const width = rect.width > 0 ? rect.width : (canvas.clientWidth || 200);
+    const height = rect.height > 0 ? rect.height : (canvas.clientHeight || 75);
+
+    if (width <= 0 || height <= 0) return;
+
+    // Escalado de alta resolución (Retina / HiDPI)
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = Math.round(width * dpr);
+    canvas.height = Math.round(height * dpr);
+
+    const ctx = canvas.getContext("2d");
+    if (ctx.resetTransform) {
+      ctx.resetTransform();
+    } else {
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+    }
+    ctx.scale(dpr, dpr);
+    ctx.clearRect(0, 0, width, height);
+
+    const padL = 6;
+    const padR = 6;
+    const padT = 5;
+    const padB = 6;
+    const plotW = width - padL - padR;
+    const plotH = height - padT - padB;
+
+    const xs = varData.x;
+    const minX = xs[0];
+    const maxX = xs[xs.length - 1];
+    const rangeX = maxX - minX || 1.0;
+
+    // Línea de base inferior (mu = 0)
+    ctx.strokeStyle = "#e2e8f0";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(padL, padT + plotH);
+    ctx.lineTo(padL + plotW, padT + plotH);
+    ctx.stroke();
+
+    // Dibujar cada conjunto difuso (curva + sombreado translúcido estilo MATLAB)
+    let idx = 0;
+    for (const [mfName, mfValues] of Object.entries(varData.conjuntos)) {
+      const color = this.obtenerColorConjunto(varKey, mfName, idx);
+      idx++;
+
+      if (!mfValues || mfValues.length === 0) continue;
+
+      // 1. Área bajo la curva
+      ctx.beginPath();
+      const xStart = padL + ((xs[0] - minX) / rangeX) * plotW;
+      const yStart = padT + (1 - Math.max(0, Math.min(1, mfValues[0]))) * plotH;
+      ctx.moveTo(xStart, padT + plotH);
+      ctx.lineTo(xStart, yStart);
+
+      for (let i = 1; i < xs.length; i++) {
+        const xi = padL + ((xs[i] - minX) / rangeX) * plotW;
+        const yi = padT + (1 - Math.max(0, Math.min(1, mfValues[i]))) * plotH;
+        ctx.lineTo(xi, yi);
+      }
+
+      const xEnd = padL + ((xs[xs.length - 1] - minX) / rangeX) * plotW;
+      ctx.lineTo(xEnd, padT + plotH);
+      ctx.closePath();
+
+      ctx.fillStyle = this.hexToRgba(color, 0.16);
+      ctx.fill();
+
+      // 2. Trazo de la curva de pertenencia
+      ctx.beginPath();
+      ctx.moveTo(xStart, yStart);
+      for (let i = 1; i < xs.length; i++) {
+        const xi = padL + ((xs[i] - minX) / rangeX) * plotW;
+        const yi = padT + (1 - Math.max(0, Math.min(1, mfValues[i]))) * plotH;
+        ctx.lineTo(xi, yi);
+      }
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1.8;
+      ctx.lineJoin = "round";
+      ctx.lineCap = "round";
+      ctx.stroke();
+    }
+
+    // 3. Indicador vertical rojo discontinuo del valor de operación actual (estilo MATLAB FIS Designer)
+    if (valorActual !== null && valorActual !== undefined && !isNaN(valorActual)) {
+      const valClamped = Math.max(minX, Math.min(maxX, valorActual));
+      const curX = padL + ((valClamped - minX) / rangeX) * plotW;
+
+      ctx.save();
+      ctx.setLineDash([3, 2]);
+      ctx.strokeStyle = "#dc2626";
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      ctx.moveTo(curX, padT);
+      ctx.lineTo(curX, padT + plotH);
+      ctx.stroke();
+
+      // Marcador indicador en la cúspide (triángulo rojo)
+      ctx.setLineDash([]);
+      ctx.fillStyle = "#dc2626";
+      ctx.beginPath();
+      ctx.moveTo(curX - 3.5, padT);
+      ctx.lineTo(curX + 3.5, padT);
+      ctx.lineTo(curX, padT + 5);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+  },
+
+  // Dibujar mini curvas vectoriales en los 4 bloques del diagrama FIS
   dibujarMiniCurvasFIS(datos) {
+    if (!datos) return;
+
     const mapeo = {
-      temperatura_rack: "miniCanvasRack",
-      uso_cpu: "miniCanvasCpu",
-      temperatura_exterior: "miniCanvasExt",
-      potencia_enfriamiento: "miniCanvasPotencia"
+      temperatura_rack: { canvasId: "miniCanvasRack", sliderId: "sliderRack", defaultVal: 22.0 },
+      uso_cpu: { canvasId: "miniCanvasCpu", sliderId: "sliderCpu", defaultVal: 50.0 },
+      temperatura_exterior: { canvasId: "miniCanvasExt", sliderId: "sliderExt", defaultVal: 20.0 },
+      potencia_enfriamiento: { canvasId: "miniCanvasPotencia", val: this.ultimaPotenciaZ !== undefined ? this.ultimaPotenciaZ : 43.3 }
     };
 
-    const colores = {
-      temperatura_rack: ["#0284c7", "#16a34a", "#eab308", "#dc2626"],
-      uso_cpu: ["#0284c7", "#f59e0b", "#dc2626"],
-      temperatura_exterior: ["#0284c7", "#f59e0b", "#dc2626"],
-      potencia_enfriamiento: ["#16a34a", "#0284c7", "#f59e0b", "#dc2626"]
-    };
-
-    for (const [varKey, canvasId] of Object.entries(mapeo)) {
-      const canvas = document.getElementById(canvasId);
+    for (const [varKey, cfg] of Object.entries(mapeo)) {
+      const canvas = document.getElementById(cfg.canvasId);
       if (!canvas || !datos[varKey]) continue;
 
-      const varData = datos[varKey];
-      const ctx = canvas.getContext("2d");
-      const datasets = [];
-      let cIdx = 0;
-
-      for (const [mfName, mfValues] of Object.entries(varData.conjuntos)) {
-        const c = colores[varKey][cIdx % colores[varKey].length];
-        datasets.push({
-          label: mfName,
-          data: mfValues.map((y, i) => ({ x: varData.x[i], y })),
-          borderColor: c,
-          borderWidth: 1.5,
-          pointRadius: 0,
-          fill: false,
-          tension: 0
-        });
-        cIdx++;
+      let currentVal = cfg.val !== undefined ? cfg.val : null;
+      if (currentVal === null && cfg.sliderId) {
+        const sEl = document.getElementById(cfg.sliderId);
+        currentVal = sEl ? parseFloat(sEl.value) : cfg.defaultVal;
       }
 
-      if (this.miniGraficosFIS[varKey]) {
-        this.miniGraficosFIS[varKey].destroy();
-      }
-
-      this.miniGraficosFIS[varKey] = new Chart(ctx, {
-        type: "line",
-        data: { datasets },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          animation: false,
-          plugins: { legend: { display: false }, tooltip: { enabled: false } },
-          scales: {
-            x: { display: false },
-            y: { display: false, min: 0, max: 1.05 }
-          }
-        }
-      });
+      this.renderizarMiniCanvasVectorial(canvas, datos[varKey], varKey, currentVal);
     }
   },
 
@@ -614,6 +746,11 @@ const app = {
     document.getElementById("lblSliderRack").textContent = `${r} °C`;
     document.getElementById("lblSliderCpu").textContent = `${c} %`;
     document.getElementById("lblSliderExt").textContent = `${e} °C`;
+
+    // Sincronizar indicadores dinámicos en los bloques FIS
+    if (this.curvasPertenencia) {
+      this.dibujarMiniCurvasFIS(this.curvasPertenencia);
+    }
   },
 
   // Ejecución de Inferencia Manual Rápida
@@ -634,6 +771,7 @@ const app = {
       });
       const data = await res.json();
       const z = Number(data.potencia_enfriamiento).toFixed(1);
+      this.ultimaPotenciaZ = parseFloat(z);
 
       // Actualizar tarjeta del sidebar
       const elVal = document.getElementById("valPotenciaZ");
@@ -655,6 +793,11 @@ const app = {
       // Actualizar en el diagrama FIS
       const fisVal = document.getElementById("fisOutputValCentroid");
       if (fisVal) fisVal.textContent = `z* = ${z} % (${nivelNombre})`;
+
+      // Sincronizar indicador de salida defusificada en el bloque FIS
+      if (this.curvasPertenencia) {
+        this.dibujarMiniCurvasFIS(this.curvasPertenencia);
+      }
     } catch (err) {
       console.error("Error al calcular inferencia manual:", err);
     }
