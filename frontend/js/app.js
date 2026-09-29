@@ -191,11 +191,11 @@ const app = {
       const res = await fetch("/api/estado");
       const data = await res.json();
 
-      // No precargar reglas al iniciar la aplicación:
-      this.reglas = [];
+      // Cargar y renderizar las 36 reglas activas del controlador difuso Mamdani:
+      this.reglas = data.reglas || [];
       this.renderizarTablaReglas(this.reglas);
       const badgeReglas = document.getElementById("badgeReglasCount");
-      if (badgeReglas) badgeReglas.textContent = "0";
+      if (badgeReglas) badgeReglas.textContent = this.reglas.length;
 
       // Si el dataset ya está cargado por defecto, bloquear el botón de subir:
       const btnSubir = document.getElementById("btnSubirDataset");
@@ -729,6 +729,14 @@ const app = {
 
       // Graficar curva de convergencia exactamente como en el gráfico del docente
       this.renderizarGraficoGA(data.historial_mejor, data.historial_promedio);
+
+      // Actualizar tabla de reglas con la solución evolucionada
+      if (data.reglas && data.reglas.length > 0) {
+        this.reglas = data.reglas;
+        this.renderizarTablaReglas(this.reglas);
+        const badgeReglas = document.getElementById("badgeReglasCount");
+        if (badgeReglas) badgeReglas.textContent = this.reglas.length;
+      }
 
       // Sincronizar superficie 3D con la nueva tabla de reglas evolucionada
       this.superficieCargada = false;

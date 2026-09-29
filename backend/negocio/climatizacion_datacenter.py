@@ -98,7 +98,9 @@ class ClimatizacionDatacenter:
         )
         # Paso 2: Sincronizar el controlador difuso activo con la mejor tabla de reglas evolucionada
         if "mejor_tabla_reglas" in resultado:
-            self.cargar_tabla_reglas_controlador(resultado["mejor_tabla_reglas"])
+            reglas_actualizadas = self.cargar_tabla_reglas_controlador(resultado["mejor_tabla_reglas"])
+            resultado["reglas"] = reglas_actualizadas
+            resultado["total_reglas"] = len(reglas_actualizadas)
         return resultado
 
 

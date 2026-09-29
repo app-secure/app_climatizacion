@@ -35,11 +35,10 @@ def ruta_archivos_estaticos(ruta_recurso_estatico: str):
 
 
 def abrir_navegador_automaticamente():
-    webbrowser.open_new("http://localhost:5000")
+    webbrowser.open_new("http://localhost:5001")
 
 
 if __name__ == "__main__":
-    print(" Servidor activo en: http://localhost:5000")
+    print(" Servidor activo en: http://localhost:5001")
     Timer(1.2, abrir_navegador_automaticamente).start()
-    aplicacion_flask.run(host="0.0.0.0", port=5000, debug=False, threaded=True)
-
+    aplicacion_flask.run(host="0.0.0.0", port=5001, debug=False, threaded=True)
