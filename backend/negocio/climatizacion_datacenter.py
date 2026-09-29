@@ -85,21 +85,12 @@ class ClimatizacionDatacenter:
         )
 
     def evaluar_temperatura_fija(self, temperatura_fija: float = 18.0) -> dict:
-        import numpy as np
-        if not self.lista_reglas_activas:
-            self.cargar_y_minar_reglas_apriori()
-        _, detalles = self.optimizacion_energetica.calcular_fitness_y_costo_datacenter(
-            np.array([float(temperatura_fija)] * 4)
-        )
-        consumo_diario = float(detalles["consumo_kwh"])
-        costo_diario = float(detalles["costo_diario"])
-        consumo_mensual = round(consumo_diario * 30.0, 1)
-        costo_mensual = round(costo_diario * 30.0, 2)
+        detalles = self.optimizacion_energetica.simular_termostato_fijo(temperatura_fija)
         return {
             "temperatura_fija": float(temperatura_fija),
-            "consumo_diario_kwh": round(consumo_diario, 1),
-            "consumo_mensual_kwh": consumo_mensual,
-            "costo_diario_usd": round(costo_diario, 2),
-            "costo_mensual_usd": costo_mensual
+            "consumo_diario_kwh": detalles["consumo_kwh"],
+            "consumo_mensual_kwh": detalles["consumo_mensual_kwh"],
+            "costo_diario_usd": detalles["costo_diario"],
+            "costo_mensual_usd": detalles["costo_mensual"]
         }
 

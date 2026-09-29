@@ -158,8 +158,12 @@ class ControladorDifuso:
             self.simulador_control_activo.compute()
             valor_salida_defusificado = float(self.simulador_control_activo.output[variable_objetivo])
             return round(valor_salida_defusificado, 2)
-        except Exception:
-            return round(valor_medio_defecto, 2)
+        except Exception as error_computo:
+            warnings.warn(
+                f"[ADVERTENCIA DIFUSA] No se pudo defusificar por centroide ({error_computo}). "
+                "Se aplica potencia conservadora de seguridad (85.0%)."
+            )
+            return 85.0
 
     def obtener_datos_curvas_pertenencia(self) -> dict:
         diccionario_curvas = {}
