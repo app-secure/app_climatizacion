@@ -1,6 +1,6 @@
 /**
  * MATLAB Fuzzy Logic Designer - Lógica del Frontend
- * Integración con Backend: Apriori, Control Difuso (Mamdani), Algoritmo Genético
+ * Integración con Backend: Control Difuso (Mamdani), Algoritmo Genético
  */
 
 const app = {
@@ -427,7 +427,7 @@ const app = {
     const formData = new FormData();
     formData.append("archivo", file);
 
-    this.actualizarStatus(`Cargando dataset '${file.name}' y minando reglas con Apriori...`, true);
+    this.actualizarStatus(`Cargando dataset '${file.name}' para perfil de simulación...`, true);
 
     try {
       const res = await fetch("/api/subir-dataset", {
