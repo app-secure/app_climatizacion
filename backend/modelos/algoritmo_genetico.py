@@ -1,3 +1,4 @@
+
 import numpy as np
 
 
@@ -10,98 +11,90 @@ class AlgoritmoGenetico:
         self.tasa_cruce = tasa_cruce
         self.tasa_mutacion = tasa_mutacion
 
-    def generar_poblacion_inicial(self, dimension_cromosoma: int, limite_inferior: float, limite_superior: float) -> list:
-        poblacion_inicial = []
+    def construir_vector_100_casillas(self, lista_valores_fitness: list) -> list:
+        n_individuos = len(lista_valores_fitness)
+        if n_individuos == 0:
+            return []
+
+        valores_raw = np.array(lista_valores_fitness, dtype=float)
+        min_val = np.min(valores_raw)
+        max_val = np.max(valores_raw)
+        rango = max_val - min_val
+
+        if rango > 1e-6:
+            margen_base = max(0.08 * rango, 1e-3)
+            valores = (valores_raw - min_val) + margen_base
+        else:
+            valores = np.ones(n_individuos)
+
+        suma_total = np.sum(valores)
+
+        if n_individuos <= 100:
+            casillas_base = [1] * n_individuos
+            casillas_restantes = 100 - n_individuos
+
+            proporciones = valores / suma_total
+            adicionales = np.floor(proporciones * casillas_restantes).astype(int)
+            sobrante = casillas_restantes - np.sum(adicionales)
+
+            residuos = (proporciones * casillas_restantes) - adicionales
+            indices_ordenados = np.argsort(-residuos)
+            for i in range(sobrante):
+                adicionales[indices_ordenados[i % n_individuos]] += 1
+
+            distribucion = [casillas_base[i] + adicionales[i] for i in range(n_individuos)]
+        else:
+            proporciones = valores / suma_total
+            distribucion = np.maximum(1, np.round(proporciones * 100)).astype(int)
+            diferencia = int(np.sum(distribucion) - 100)
+            if diferencia > 0:
+                indices_mayores = np.argsort(-distribucion)
+                for i in range(diferencia):
+                    if distribucion[indices_mayores[i % n_individuos]] > 1:
+                        distribucion[indices_mayores[i % n_individuos]] -= 1
+            elif diferencia < 0:
+                indices_menores = np.argsort(distribucion)
+                for i in range(-diferencia):
+                    distribucion[indices_menores[i % n_individuos]] += 1
+
+        vector_100 = []
+        for idx_ind, n_casillas in enumerate(distribucion):
+            vector_100.extend([idx_ind] * n_casillas)
+        while len(vector_100) < 100:
+            vector_100.append(int(np.argmax(valores)))
+        if len(vector_100) > 100:
+            vector_100 = vector_100[:100]
+
+        return vector_100
+
+    def seleccion_por_vector_100_casillas(self, poblacion_actual: list, vector_100: list) -> np.ndarray:
+        
+        indice_casilla_aleatoria = np.random.randint(0, len(vector_100))
+        indice_ganador = vector_100[indice_casilla_aleatoria]
+        return poblacion_actual[indice_ganador]
+
+    def generar_poblacion_discreta(self, dimension_cromosoma: int, num_alelos: int = 4) -> list:
+        
+        poblacion = []
         for _ in range(self.tamano_poblacion):
-            individuo_cromosoma = np.random.uniform(limite_inferior, limite_superior, dimension_cromosoma)
-            poblacion_inicial.append(individuo_cromosoma)
-        return poblacion_inicial
+            individuo = np.random.randint(0, num_alelos, size=dimension_cromosoma)
+            poblacion.append(individuo)
+        return poblacion
 
-    def seleccion_por_torneo(self, poblacion_actual: list, lista_valores_fitness: list, tamano_torneo: int = 2) -> np.ndarray:
-        indices_seleccionados = np.random.choice(len(poblacion_actual), tamano_torneo, replace=False)
-        mejor_indice_candidato = indices_seleccionados[0]
-        mejor_aptitud_candidato = lista_valores_fitness[mejor_indice_candidato]
-
-        for indice_candidato in indices_seleccionados[1:]:
-            if lista_valores_fitness[indice_candidato] > mejor_aptitud_candidato:
-                mejor_indice_candidato = indice_candidato
-                mejor_aptitud_candidato = lista_valores_fitness[indice_candidato]
-
-        return poblacion_actual[mejor_indice_candidato]
-
-    def cruce_aritmetico(self, cromosoma_padre_uno: np.ndarray, cromosoma_padre_dos: np.ndarray) -> np.ndarray:
+    def cruce_dos_puntos(self, padre_uno: np.ndarray, padre_dos: np.ndarray) -> np.ndarray:
 
         if np.random.rand() < self.tasa_cruce:
-            factor_ponderacion_alfa = np.random.uniform(0.3, 0.7)
-            cromosoma_descendiente = (factor_ponderacion_alfa * cromosoma_padre_uno) + (
-                (1.0 - factor_ponderacion_alfa) * cromosoma_padre_dos
-            )
-            return cromosoma_descendiente
-        return cromosoma_padre_uno.copy()
+            dimension = len(padre_uno)
+            pt1, pt2 = sorted(np.random.choice(dimension, 2, replace=False))
+            hijo = padre_uno.copy()
+            hijo[pt1:pt2] = padre_dos[pt1:pt2]
+            return hijo
+        return padre_uno.copy()
 
-    def mutacion_gaussiana(self, individuo_cromosoma: np.ndarray, limite_inferior: float,
-                           limite_superior: float, desviacion_estandar: float = 0.7) -> np.ndarray:
+    def mutacion_discreta(self, individuo_cromosoma: np.ndarray, num_alelos: int = 4) -> np.ndarray:
 
         cromosoma_mutado = individuo_cromosoma.copy()
-        for indice_gen in range(len(cromosoma_mutado)):
+        for idx in range(len(cromosoma_mutado)):
             if np.random.rand() < self.tasa_mutacion:
-                ruido_aleatorio_gen = np.random.normal(0.0, desviacion_estandar)
-                cromosoma_mutado[indice_gen] = np.clip(
-                    cromosoma_mutado[indice_gen] + ruido_aleatorio_gen,
-                    limite_inferior,
-                    limite_superior
-                )
+                cromosoma_mutado[idx] = np.random.randint(0, num_alelos)
         return cromosoma_mutado
-
-    def optimizar(self, funcion_evaluacion_fitness, dimension_cromosoma: int,
-                  limite_inferior: float, limite_superior: float) -> dict:
-
-        poblacion_actual = self.generar_poblacion_inicial(dimension_cromosoma, limite_inferior, limite_superior)
-
-        resultados_evaluacion = [funcion_evaluacion_fitness(ind) for ind in poblacion_actual]
-        lista_valores_fitness = [resultado[0] for resultado in resultados_evaluacion]
-
-        indice_mejor_absoluto = int(np.argmax(lista_valores_fitness))
-        mejor_valor_fitness_global = lista_valores_fitness[indice_mejor_absoluto]
-        mejor_individuo_global = poblacion_actual[indice_mejor_absoluto].copy()
-        detalles_mejor_solucion_global = resultados_evaluacion[indice_mejor_absoluto][1]
-
-        historial_mejor_fitness_por_generacion = []
-        historial_promedio_fitness_por_generacion = []
-
-    
-        for numero_generacion in range(self.numero_generaciones):
-            nueva_poblacion_descendientes = [mejor_individuo_global.copy()]  
-
-            while len(nueva_poblacion_descendientes) < self.tamano_poblacion:
-                padre_primer_elegido = self.seleccion_por_torneo(poblacion_actual, lista_valores_fitness)
-                padre_segundo_elegido = self.seleccion_por_torneo(poblacion_actual, lista_valores_fitness)
-
-                hijo_generado = self.cruce_aritmetico(padre_primer_elegido, padre_segundo_elegido)
-                hijo_mutado = self.mutacion_gaussiana(hijo_generado, limite_inferior, limite_superior)
-
-                nueva_poblacion_descendientes.append(hijo_mutado)
-
-            poblacion_actual = nueva_poblacion_descendientes
-
-            resultados_evaluacion = [funcion_evaluacion_fitness(ind) for ind in poblacion_actual]
-            lista_valores_fitness = [resultado[0] for resultado in resultados_evaluacion]
-
-            indice_mejor_generacion_actual = int(np.argmax(lista_valores_fitness))
-            mejor_fitness_generacion_actual = lista_valores_fitness[indice_mejor_generacion_actual]
-
-            if mejor_fitness_generacion_actual > mejor_valor_fitness_global:
-                mejor_valor_fitness_global = mejor_fitness_generacion_actual
-                mejor_individuo_global = poblacion_actual[indice_mejor_generacion_actual].copy()
-                detalles_mejor_solucion_global = resultados_evaluacion[indice_mejor_generacion_actual][1]
-
-            historial_mejor_fitness_por_generacion.append(round(float(mejor_valor_fitness_global), 2))
-            historial_promedio_fitness_por_generacion.append(round(float(np.mean(lista_valores_fitness)), 2))
-
-        return {
-            "mejor_individuo": [round(float(gen), 2) for gen in mejor_individuo_global],
-            "mejor_valor_fitness": round(float(mejor_valor_fitness_global), 2),
-            "historial_mejor_fitness": historial_mejor_fitness_por_generacion,
-            "historial_promedio_fitness": historial_promedio_fitness_por_generacion,
-            "detalles_solucion": detalles_mejor_solucion_global
-        }

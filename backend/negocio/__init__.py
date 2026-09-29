@@ -1,12 +1,11 @@
 from .climatizacion_datacenter import ClimatizacionDatacenter
 from .climatizacion_difusa import ClimatizacionDifusa
-from .mineria_reglas import MineriaReglas
-from .optimizacion_energetica import OptimizacionEnergetica
+from .optimizador_genetico_difuso import OptimizadorGeneticoDifuso
 
 __all__ = [
     "ClimatizacionDatacenter",
     "ClimatizacionDifusa",
-    "MineriaReglas",
-    "OptimizacionEnergetica"
+    "OptimizadorGeneticoDifuso"
 ]
+
 

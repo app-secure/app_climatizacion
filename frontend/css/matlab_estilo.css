@@ -263,7 +263,7 @@ html, body {
   padding: 4px;
 }
 
-/* --- Panel Izquierdo: Dataset, Parámetros Apriori y Variables --- */
+/* --- Panel Izquierdo: Configuración, Parámetros AG y Variables --- */
 .matlab-sidebar {
   width: 235px;
   min-width: 215px;
@@ -276,6 +276,19 @@ html, body {
   flex-direction: column;
   overflow: hidden;
   gap: 1px;
+}
+
+/* Paneles Dinámicos del Sidebar según la Pestaña Activa */
+.sidebar-panel {
+  display: none;
+  flex-direction: column;
+  flex: 1;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.sidebar-panel.active {
+  display: flex;
 }
 
 .sidebar-section {
@@ -331,34 +344,7 @@ html, body {
   transition: all 0.15s ease;
 }
 
-.btn-sidebar-dataset:hover:not(:disabled) {
-  background-color: #e2e8f0;
-  border-color: #94a3b8;
-}
-
-.btn-sidebar-dataset:disabled,
-.btn-sidebar-dataset.disabled {
-  background-color: #f8fafc !important;
-  border-color: #e2e8f0 !important;
-  color: #94a3b8 !important;
-  cursor: not-allowed !important;
-  opacity: 0.85;
-}
-
-.dataset-status-text {
-  font-size: 10.5px;
-  color: #0f766e;
-  background-color: #f0fdfa;
-  border: 1px solid #ccfbf1;
-  padding: 3px 6px;
-  border-radius: 3px;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-weight: 500;
-}
-
-/* Filas de parámetros Apriori */
+/* Filas de parámetros del editor */
 .sidebar-param-row {
   display: flex;
   align-items: center;
@@ -388,44 +374,6 @@ html, body {
   outline: none;
   border-color: #0284c7;
   background-color: #ffffff;
-}
-
-.tree-view {
-  flex: 1;
-  overflow-y: auto;
-  padding: 8px 6px;
-  background-color: #ffffff;
-}
-
-.tree-node {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 6px;
-  cursor: pointer;
-  border-radius: 3px;
-  font-size: 11px;
-}
-
-.tree-node:hover {
-  background-color: var(--matlab-table-hover);
-}
-
-.tree-node.active {
-  background-color: var(--matlab-table-selected);
-  color: var(--matlab-blue-dark);
-  font-weight: 600;
-}
-
-.tree-node i {
-  width: 14px;
-  text-align: center;
-}
-
-.tree-children {
-  margin-left: 16px;
-  border-left: 1px dotted #ccc;
-  padding-left: 6px;
 }
 
 /* --- Panel Central: Workspace Tabs --- */
@@ -659,7 +607,7 @@ html, body {
 .membership-grid.single-view {
   display: flex !important;
   flex-direction: column;
-  height: calc(100% - 34px);
+  height: 100%;
 }
 
 .membership-grid.single-view .mf-card {
@@ -724,303 +672,140 @@ html, body {
 }
 
 /* ==========================================================================
-   7. TAB 4: ALGORITMO GENÉTICO (CONVERGENCIA Y AHORRO)
+   8. COMPONENTES INTERACTIVOS DEL DIAGRAMA FIS (ENTRADAS & SOLUCIÓN)
    ========================================================================== */
-.ga-layout {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  gap: 10px;
-}
-
-.ga-controls {
+.fis-inputs-toolbar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 10px 14px;
-  background-color: #f7f9fa;
-  border: 1px solid var(--matlab-border);
-  border-radius: 4px;
-}
-
-.ga-params {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.ga-param-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 11px;
-}
-
-.ga-param-item input {
-  width: 60px;
-  padding: 3px 6px;
-  border: 1px solid var(--matlab-border);
-  border-radius: 3px;
-}
-
-.ga-results-grid {
-  display: grid;
-  grid-template-columns: 1.2fr 0.8fr;
-  gap: 10px;
-  flex: 1;
-}
-
-.ga-chart-card {
-  border: 1px solid var(--matlab-border);
-  border-radius: 4px;
-  display: flex;
-  flex-direction: column;
-  padding: 8px;
-  background: white;
-}
-
-.ga-summary-card {
-  border: 1px solid var(--matlab-border);
-  border-radius: 4px;
-  display: flex;
-  flex-direction: column;
-  padding: 12px;
-  background: #ffffff;
-  overflow-y: auto;
-  gap: 10px;
-}
-
-.savings-kpi {
-  background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
-  border: 1px solid #81c784;
-  border-radius: 6px;
-  padding: 12px;
-  text-align: center;
-}
-
-.savings-kpi .value {
-  font-size: 24px;
-  font-weight: 700;
-  color: #1b5e20;
-}
-
-.savings-kpi .subtitle {
-  font-size: 11px;
-  color: #2e7d32;
-  margin-top: 2px;
-}
-
-.setpoints-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 11px;
-  margin-top: 6px;
-}
-
-.setpoints-table th, .setpoints-table td {
-  padding: 4px 6px;
-  border: 1px solid var(--matlab-border-light);
-  text-align: center;
-}
-
-.setpoints-table th {
-  background-color: #f0f2f5;
-  color: var(--matlab-text-muted);
-}
-
-.temp-fija-panel {
-  background: #f8fafc;
-  border: 1px solid #cbd5e1;
-  border-radius: 4px;
-  padding: 8px 10px;
-  margin: 6px 0 8px 0;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-
-.temp-fija-panel input[type="number"] {
-  border: 1px solid #94a3b8;
-  border-radius: 3px;
-  outline: none;
-  transition: border-color 0.2s, box-shadow 0.2s;
-}
-
-.temp-fija-panel input[type="number"]:focus {
-  border-color: #0284c7;
-  box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.15);
-}
-
-
-/* ==========================================================================
-   8. PANEL DERECHO: INSPECTOR DE PROPIEDADES & INFERENCIA EN TIEMPO REAL
-   ========================================================================== */
-.matlab-inspector {
-  width: 320px;
-  min-width: 290px;
-  max-width: 350px;
-  flex-shrink: 0;
-  background-color: var(--matlab-sidebar-bg);
-  border: 1px solid var(--matlab-border);
-  border-radius: 3px;
-  display: flex;
-  flex-direction: column;
-  overflow-y: auto;
-}
-
-.inspector-section {
-  padding: 10px;
-  border-bottom: 1px solid var(--matlab-border);
-  background-color: #ffffff;
-}
-
-.inspector-section-title {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--matlab-blue-dark);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 8px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-/* Sliders de simulación */
-.slider-group {
-  margin-bottom: 10px;
-}
-
-.slider-label-row {
-  display: flex;
-  justify-content: space-between;
-  font-size: 11px;
+  gap: 8px;
   margin-bottom: 2px;
 }
 
-.slider-name {
-  font-weight: 500;
+.fis-inputs-label {
+  font-weight: 700;
+  font-size: 13px;
+  color: #1e293b;
 }
 
-.slider-val-box {
+.fis-inputs-box-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.fis-vector-input {
+  width: 125px;
+  padding: 4px 6px;
   font-family: var(--font-mono);
-  font-weight: bold;
-  color: var(--matlab-blue);
-  background-color: #f0f4f8;
-  padding: 1px 6px;
+  font-weight: 700;
+  font-size: 12px;
+  border: 1.5px solid #24292f;
   border-radius: 3px;
-  border: 1px solid #d0dbe5;
+  background: #ffffff;
+  color: #0f172a;
+  text-align: center;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
 }
 
-input[type="range"] {
-  width: 100%;
-  height: 4px;
-  border-radius: 2px;
-  background: #d6d9dc;
+.fis-vector-input:focus {
   outline: none;
-  cursor: pointer;
+  border-color: #0284c7;
+  box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.25);
 }
 
-input[type="range"]::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: var(--matlab-blue);
-  cursor: pointer;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
-}
-
-/* Medidor de salida (Gauge / Barra) */
-.output-meter-card {
-  background: linear-gradient(to bottom, #fafbfc, #f1f4f7);
-  border: 1px solid var(--matlab-border);
-  border-radius: 6px;
-  padding: 10px;
-  margin-top: 6px;
-  text-align: center;
-}
-
-.output-value-big {
-  font-size: 28px;
-  font-weight: 800;
-  color: #005a82;
-  font-family: var(--font-mono);
-  margin: 4px 0;
-}
-
-.progress-bar-bg {
-  width: 100%;
-  height: 14px;
-  background-color: #e2e6ea;
-  border-radius: 7px;
-  overflow: hidden;
-  margin-top: 6px;
-  border: 1px solid #c9d0d6;
-}
-
-.progress-bar-fill {
-  height: 100%;
-  width: 0%;
-  background: linear-gradient(to right, #0076a8, #00b4d8);
-  transition: width 0.15s ease, background 0.2s ease;
-}
-
-/* Badge Normativo */
-.norm-badge {
-  display: inline-block;
-  margin-top: 8px;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 10px;
-  font-weight: 600;
-  text-align: center;
-  width: 100%;
-}
-
-.badge-optimo {
-  background-color: #d1e7dd;
-  color: #0f5132;
-  border: 1px solid #badbcc;
-}
-
-.badge-advertencia {
-  background-color: #fff3cd;
-  color: #664d03;
-  border: 1px solid #ffecb5;
-}
-
-.badge-critico {
-  background-color: #f8d7da;
-  color: #842029;
-  border: 1px solid #f5c2c7;
-}
-
-/* Inspector de Regla Seleccionada */
-.rule-details-box {
-  background-color: #f8f9fa;
-  border: 1px solid var(--matlab-border-light);
-  border-radius: 4px;
-  padding: 8px;
+.btn-evaluar-fis {
+  padding: 4px 9px;
   font-size: 11px;
+  background: #0284c7;
+  color: #ffffff;
+  border: 1px solid #0369a1;
+  border-radius: 3px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
 }
 
-.rule-detail-row {
-  margin-bottom: 6px;
+.btn-evaluar-fis:hover {
+  background: #0369a1;
+  transform: translateY(-1px);
+}
+
+/* Tarjeta de Solución Difusa en la Salida del FIS */
+.fis-solution-card {
+  width: 270px;
+  background: #ffffff;
+  border: 1.5px solid #24292f;
+  border-radius: 4px;
+  box-shadow: 2px 3px 8px rgba(0,0,0,0.08);
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  overflow: hidden;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
 }
 
-.rule-detail-row .lbl {
-  color: var(--matlab-text-muted);
-  font-size: 10px;
-  text-transform: uppercase;
+.fis-solution-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 18px rgba(234, 88, 12, 0.2);
+  border-color: #ea580c;
 }
 
-.rule-detail-row .val {
-  font-weight: 500;
+/* Header exterior para el valor z* arriba de la tarjeta */
+.fis-output-header-outside {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 25px;
+  margin-bottom: 2px;
+}
+
+.fis-solution-label-tag {
+  font-family: var(--font-mono);
+  font-size: 16px;
+  font-weight: 800;
+  color: #c2410c;
+  letter-spacing: 0.5px;
+}
+
+.fis-solution-plot {
+  height: 155px;
+  background: #ffffff;
+  position: relative;
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fis-solution-plot canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.modal-close-btn {
+  background: none;
+  border: none;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  color: #64748b;
+  padding: 0 4px;
+}
+
+.modal-close-btn:hover {
+  color: #0f172a;
+}
+
+.pulse-highlight {
+  animation: pulseGlow 1.2s infinite;
+}
+
+@keyframes pulseGlow {
+  0% { box-shadow: 0 0 0 0 rgba(2, 132, 199, 0.7); }
+  70% { box-shadow: 0 0 0 10px rgba(2, 132, 199, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(2, 132, 199, 0); }
 }
 
 /* ==========================================================================
@@ -1053,7 +838,7 @@ input[type="range"]::-webkit-slider-thumb {
   display: inline-block;
 }
 
-/* Modal Apriori / Alerta */
+/* Modal Informativo / Alerta */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -1100,3 +885,247 @@ input[type="range"]::-webkit-slider-thumb {
   justify-content: flex-end;
   gap: 8px;
 }
+
+/* ==========================================================================
+   DIAGRAMA FIS INTERACTIVO ESTILO MATLAB FUZZY LOGIC DESIGNER
+   ========================================================================== */
+.fis-diagram-wrapper {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  background: #f8fafc;
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.fis-system-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid var(--matlab-border);
+  border-radius: 4px;
+  padding: 8px 14px;
+  margin-bottom: 16px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+
+.fis-stage-canvas {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 40px;
+  flex: 1;
+  position: relative;
+  min-height: 420px;
+}
+
+.fis-column-inputs, .fis-column-outputs {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  z-index: 2;
+}
+
+.fis-block-card {
+  width: 175px;
+  background: #ffffff;
+  border: 1.5px solid #24292f;
+  border-radius: 4px;
+  box-shadow: 2px 3px 6px rgba(0,0,0,0.08);
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.fis-block-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(0, 118, 168, 0.2);
+  border-color: #0076a8;
+}
+
+.fis-block-card.active {
+  border-color: #0076a8;
+  outline: 2px solid #0076a8;
+}
+
+.fis-block-plot {
+  height: 72px;
+  background: #ffffff;
+  border-bottom: 1px solid #e1e4e8;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+}
+
+.fis-block-plot canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.fis-block-label {
+  padding: 6px 8px;
+  text-align: center;
+  font-weight: 600;
+  font-size: 11px;
+  color: #005a82;
+  background: #fdfdfd;
+}
+
+.fis-block-label.output-label {
+  color: #c2410c;
+}
+
+/* Bloque Central FIS Mamdani */
+/* Bloque Central FIS Clásico de MATLAB */
+.fis-center-box {
+  width: 175px;
+  height: 195px;
+  background-color: #f8fafc;
+  background-image: linear-gradient(to bottom, #ffffff, #f1f5f9);
+  border: 2px solid #1e293b;
+  border-radius: 3px;
+  color: #0f172a;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 2px 3px 8px rgba(0, 0, 0, 0.08);
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  z-index: 2;
+  text-align: center;
+  padding: 16px 12px;
+}
+
+.fis-center-box:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.14);
+  border-color: #0284c7;
+}
+
+.fis-center-box .fis-type-classic {
+  font-family: var(--font-family);
+  font-size: 14px;
+  font-weight: 500;
+  color: #1e293b;
+  margin-bottom: 22px;
+  letter-spacing: 0.2px;
+}
+
+.fis-center-box .fis-rules-count-classic {
+  font-family: var(--font-family);
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.fis-center-box .fis-meta-classic {
+  font-size: 10px;
+  color: #64748b;
+  margin-top: 14px;
+  padding-top: 8px;
+  border-top: 1px dotted #cbd5e1;
+  width: 80%;
+  line-height: 1.3;
+}
+
+/* Líneas y conectores SVG */
+.fis-connectors-svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Panel de Parámetros AG en el Tab de Reglas */
+.rules-ag-panel {
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  padding: 8px 12px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.rules-ag-inputs {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.rules-ag-field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  color: #334155;
+}
+
+.rules-ag-field input {
+  width: 55px;
+  padding: 3px 6px;
+  font-size: 11px;
+  border: 1px solid var(--matlab-border);
+  border-radius: 3px;
+  background: #ffffff;
+}
+
+/* Cuadrícula de Coordenadas Dinámicas en el Sidebar */
+.mf-dynamic-coords-container {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.mf-coord-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.mf-coord-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #475569;
+  flex: 1;
+}
+
+.mf-coord-input {
+  width: 80px;
+  padding: 3px 6px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  border: 1px solid var(--matlab-border);
+  border-radius: 3px;
+  text-align: right;
+}
+
+.expert-standard-box {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 4px;
+  padding: 6px 8px;
+  font-size: 10px;
+  color: #166534;
+  line-height: 1.35;
+  margin-top: 8px;
+}
+

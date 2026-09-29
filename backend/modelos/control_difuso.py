@@ -82,13 +82,6 @@ class ControladorDifuso:
 
         variable_objetivo[nombre_conjunto] = np.clip(valores, 0.0, 1.0)
 
-    def obtener_grado_pertenencia(self, nombre_variable: str, nombre_conjunto: str, valor_x: float) -> float:
-    
-        variable_objetivo = self._obtener_variable(nombre_variable)
-        universo = self.universos_discurso[nombre_variable]
-        curva_pertenencia = variable_objetivo.terms[nombre_conjunto].mf
-        grado = float(fuzz.interp_membership(universo, curva_pertenencia, float(valor_x)))
-        return round(float(np.clip(grado, 0.0, 1.0)), 4)
 
     def _obtener_variable(self, nombre_variable: str):
         if nombre_variable in self.variables_entrada:
@@ -111,29 +104,6 @@ class ControladorDifuso:
         regla_construida.weight = float(peso_confianza)
         self.lista_reglas_difusas.append(regla_construida)
 
-    def agregar_regla_por_nombres(self, condiciones_antecedentes: dict, variable_salida: str,
-                                  etiqueta_salida: str, peso_confianza: float,
-                                  operador_logico: str = "AND"):
-      
-        if not condiciones_antecedentes:
-            raise ValueError("La regla difusa debe tener al menos una condición antecedente.")
-
-        lista_condiciones = []
-        for nombre_var, etiqueta_val in condiciones_antecedentes.items():
-            var_antecedente = self.variables_entrada[nombre_var]
-            lista_condiciones.append(var_antecedente[etiqueta_val])
-
-        clausula_antecedente = lista_condiciones[0]
-        for condicion_siguiente in lista_condiciones[1:]:
-            if operador_logico.upper() == "OR":
-                clausula_antecedente = clausula_antecedente | condicion_siguiente
-            else:
-                clausula_antecedente = clausula_antecedente & condicion_siguiente
-
-        consecuente_var = self.variables_salida[variable_salida]
-        clausula_consecuente = consecuente_var[etiqueta_salida]
-
-        self.agregar_regla(clausula_antecedente, clausula_consecuente, peso_confianza=peso_confianza)
 
     def compilar_sistema(self):
         if not self.lista_reglas_difusas:
@@ -180,10 +150,7 @@ class ControladorDifuso:
         return diccionario_curvas
 
     def obtener_curva_agregada_salida(self, nombre_variable_salida: str = "potencia_enfriamiento") -> dict:
-        """
-        Retorna la curva difusa agregada (unión de consecuentes recortados por las reglas)
-        y su universo de discurso evaluado durante la última inferencia en simulación.
-        """
+
         if self.simulador_control_activo is None:
             return {"x": [], "y": []}
 

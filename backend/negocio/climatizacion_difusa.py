@@ -9,63 +9,89 @@ class ClimatizacionDifusa:
     LIMITE_SUPERIOR_RECOMENDADO_ASHRAE_CELSIUS = 27.0
     LIMITE_CRITICO_SERVIDOR_DELL_R740_CELSIUS = 30.0
 
+    COORDENADAS_BASE = {
+        "temperatura_rack": {
+            "BAJA": {"tipo": "trapmf", "params": [10.0, 10.0, 14.0, 18.0]},
+            "OPTIMA": {"tipo": "trapmf", "params": [17.5, 20.5, 23.5, 26.5]},
+            "ALTA": {"tipo": "trimf", "params": [25.0, 28.5, 30.5]},
+            "CRITICA": {"tipo": "trapmf", "params": [29.0, 31.0, 45.0, 45.0]}
+        },
+        "uso_cpu": {
+            "BAJO": {"tipo": "trapmf", "params": [0.0, 0.0, 20.0, 35.0]},
+            "MEDIO": {"tipo": "trimf", "params": [25.0, 50.0, 75.0]},
+            "ALTO": {"tipo": "trapmf", "params": [60.0, 75.0, 100.0, 100.0]}
+        },
+        "temperatura_exterior": {
+            "FRIO": {"tipo": "trapmf", "params": [0.0, 0.0, 12.0, 16.0]},
+            "TEMPLADO": {"tipo": "trimf", "params": [14.0, 20.0, 26.0]},
+            "CALIDO": {"tipo": "trapmf", "params": [23.0, 28.0, 45.0, 45.0]}
+        },
+        "potencia_enfriamiento": {
+            "MINIMA": {"tipo": "trapmf", "params": [0.0, 0.0, 15.0, 30.0]},
+            "MEDIA": {"tipo": "trimf", "params": [20.0, 45.0, 65.0]},
+            "ALTA": {"tipo": "trimf", "params": [55.0, 75.0, 90.0]},
+            "MAXIMA": {"tipo": "trapmf", "params": [80.0, 88.0, 100.0, 100.0]}
+        }
+    }
+
     def __init__(self):
         self.controlador_difuso = ControladorDifuso()
+        # Copia independiente de las coordenadas para edición en caliente estilo MATLAB
+        self.coordenadas_conjuntos = {
+            var: {c: {"tipo": conf["tipo"], "params": list(conf["params"])} for c, conf in mfs.items()}
+            for var, mfs in self.COORDENADAS_BASE.items()
+        }
         self.configurar_sistema_difuso()
 
-    def configurar_sistema_difuso(self):
-       
+    def configurar_sistema_difuso(self, nuevas_coordenadas: dict = None):
+        """
+        Configura las funciones de pertenencia directamente con sus coordenadas manuales [a,b,c] o [a,b,c,d],
+        permitiendo edición interactiva idéntica al Membership Function Editor de MATLAB.
+        """
+        if nuevas_coordenadas:
+            for var, mfs in nuevas_coordenadas.items():
+                if var in self.coordenadas_conjuntos:
+                    for c, conf in mfs.items():
+                        if c in self.coordenadas_conjuntos[var]:
+                            self.coordenadas_conjuntos[var][c].update(conf)
+
+        # Reiniciar variables en el controlador difuso
+        self.controlador_difuso.variables_entrada = {}
+        self.controlador_difuso.variables_salida = {}
+        self.controlador_difuso.universos_discurso = {}
+        self.controlador_difuso.limpiar_reglas()
+
+        # 1. Entrada: temperatura_rack (°C)
         self.controlador_difuso.agregar_variable_entrada(
             nombre_variable="temperatura_rack",
             valor_minimo=10.0,
             valor_maximo=45.0,
             tamano_paso=0.5
         )
-        self.controlador_difuso.agregar_conjunto(
-            "temperatura_rack", "BAJA", [10.0, 10.0, 14.5, 18.0]
-        )
-        self.controlador_difuso.agregar_conjunto(
-            "temperatura_rack", "OPTIMA", [16.5, 18.0, 24.5, 27.0]
-        )
-        self.controlador_difuso.agregar_conjunto(
-            "temperatura_rack", "ALTA", [24.5, 28.5, 30.5]
-        )
-        self.controlador_difuso.agregar_conjunto(
-            "temperatura_rack", "CRITICA", [29.5, 31.0, 45.0, 45.0]
-        )
+        for conj, conf in self.coordenadas_conjuntos["temperatura_rack"].items():
+            self.controlador_difuso.agregar_conjunto("temperatura_rack", conj, conf["params"], tipo_funcion=conf["tipo"])
 
+        # 2. Entrada: uso_cpu (%)
         self.controlador_difuso.agregar_variable_entrada(
             nombre_variable="uso_cpu",
             valor_minimo=0.0,
             valor_maximo=100.0,
             tamano_paso=1.0
         )
-        self.controlador_difuso.agregar_conjunto(
-            "uso_cpu", "BAJO", [0.0, 0.0, 20.0, 35.0]
-        )
-        self.controlador_difuso.agregar_conjunto(
-            "uso_cpu", "MEDIO", [25.0, 50.0, 75.0]
-        )
-        self.controlador_difuso.agregar_conjunto(
-            "uso_cpu", "ALTO", [65.0, 80.0, 100.0, 100.0]
-        )
+        for conj, conf in self.coordenadas_conjuntos["uso_cpu"].items():
+            self.controlador_difuso.agregar_conjunto("uso_cpu", conj, conf["params"], tipo_funcion=conf["tipo"])
 
+        # 3. Entrada: temperatura_exterior (°C)
         self.controlador_difuso.agregar_variable_entrada(
             nombre_variable="temperatura_exterior",
             valor_minimo=0.0,
             valor_maximo=45.0,
             tamano_paso=0.5
         )
-        self.controlador_difuso.agregar_conjunto(
-            "temperatura_exterior", "FRIO", [0.0, 0.0, 12.0, 17.0]
-        )
-        self.controlador_difuso.agregar_conjunto(
-            "temperatura_exterior", "TEMPLADO", [14.0, 20.0, 26.0]
-        )
-        self.controlador_difuso.agregar_conjunto(
-            "temperatura_exterior", "CALIDO", [23.0, 28.0, 45.0, 45.0]
-        )
+        for conj, conf in self.coordenadas_conjuntos["temperatura_exterior"].items():
+            self.controlador_difuso.agregar_conjunto("temperatura_exterior", conj, conf["params"], tipo_funcion=conf["tipo"])
 
+        # 4. Salida: potencia_enfriamiento (%) con defuzzificación por Centroide
         self.controlador_difuso.agregar_variable_salida(
             nombre_variable="potencia_enfriamiento",
             valor_minimo=0.0,
@@ -73,20 +99,56 @@ class ClimatizacionDifusa:
             tamano_paso=1.0,
             metodo_defusificacion="centroid"
         )
-        self.controlador_difuso.agregar_conjunto(
-            "potencia_enfriamiento", "MINIMA", [0.0, 0.0, 15.0, 30.0]
-        )
-        self.controlador_difuso.agregar_conjunto(
-            "potencia_enfriamiento", "MEDIA", [20.0, 45.0, 65.0]
-        )
-        self.controlador_difuso.agregar_conjunto(
-            "potencia_enfriamiento", "ALTA", [55.0, 75.0, 90.0]
-        )
-        self.controlador_difuso.agregar_conjunto(
-            "potencia_enfriamiento", "MAXIMA", [80.0, 88.0, 100.0, 100.0]
-        )
+        for conj, conf in self.coordenadas_conjuntos["potencia_enfriamiento"].items():
+            self.controlador_difuso.agregar_conjunto("potencia_enfriamiento", conj, conf["params"], tipo_funcion=conf["tipo"])
 
-    def cargar_reglas(self, lista_reglas_minadas: list):
+    def actualizar_coordenadas_conjunto(self, variable: str, conjunto: str, params: list, tipo: str = None, reglas_a_recargar: list = None):
+        """
+        Modifica manualmente las coordenadas [a, b, c, d] de un conjunto difuso específico (estilo MATLAB),
+        recompilando el sistema difuso y preservando las reglas activas.
+        """
+        if variable not in self.coordenadas_conjuntos:
+            raise ValueError(f"Variable '{variable}' no válida.")
+        if conjunto not in self.coordenadas_conjuntos[variable]:
+            raise ValueError(f"Conjunto '{conjunto}' no existe en {variable}.")
+
+        conf = self.coordenadas_conjuntos[variable][conjunto]
+        conf["params"] = [float(p) for p in params]
+        if tipo:
+            conf["tipo"] = tipo
+
+        self.configurar_sistema_difuso()
+        if reglas_a_recargar:
+            self.cargar_reglas(reglas_a_recargar)
+
+        return {
+            "exito": True,
+            "variable": variable,
+            "conjunto": conjunto,
+            "configuracion": conf,
+            "mensaje": f"Coordenadas de '{variable}.{conjunto}' actualizadas a {conf['params']} ({conf['tipo']})."
+        }
+
+    def obtener_coordenadas_actuales(self) -> dict:
+        """
+        Retorna la estructura de coordenadas de todos los conjuntos difusos para el editor MATLAB.
+        """
+        return self.coordenadas_conjuntos
+
+    def restablecer_coordenadas_base(self, reglas_a_recargar: list = None):
+        """
+        Restaura los parámetros originales recomendados bajo ASHRAE TC 9.9 y Dell R740.
+        """
+        self.coordenadas_conjuntos = {
+            var: {c: {"tipo": conf["tipo"], "params": list(conf["params"])} for c, conf in mfs.items()}
+            for var, mfs in self.COORDENADAS_BASE.items()
+        }
+        self.configurar_sistema_difuso()
+        if reglas_a_recargar:
+            self.cargar_reglas(reglas_a_recargar)
+        return self.coordenadas_conjuntos
+
+    def cargar_reglas(self, lista_reglas_minadas: list, operador: str = "AND"):
         
         self.controlador_difuso.limpiar_reglas()
 
@@ -114,9 +176,13 @@ class ClimatizacionDifusa:
             if not lista_condiciones_antecedentes:
                 continue
 
+            op = regla_info.get("operador", operador).upper()
             condicion_antecedente_unificada = lista_condiciones_antecedentes[0]
             for condicion_siguiente in lista_condiciones_antecedentes[1:]:
-                condicion_antecedente_unificada = condicion_antecedente_unificada & condicion_siguiente
+                if op == "OR":
+                    condicion_antecedente_unificada = condicion_antecedente_unificada | condicion_siguiente
+                else:
+                    condicion_antecedente_unificada = condicion_antecedente_unificada & condicion_siguiente
 
             etiqueta_consecuente = regla_info["etiqueta_consecuente"]
             clausula_consecuente = variable_enfriamiento[etiqueta_consecuente]
