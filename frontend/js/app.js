@@ -63,6 +63,7 @@ const app = {
       sliderSurf.addEventListener("input", (e) => {
         document.getElementById("valSurfaceExt").textContent = `${parseFloat(e.target.value).toFixed(1)} °C`;
       });
+      sliderSurf.addEventListener("change", () => this.cargarSuperficie3D());
     }
     const btnSurf = document.getElementById("btnActualizarSuperficie");
     if (btnSurf) {
@@ -622,6 +623,7 @@ const app = {
         y: data.y,
         type: "surface",
         colorscale: "Viridis",
+        hovertemplate: "Temp. Rack: %{x:.1f} °C<br>Uso CPU: %{y:.1f} %<br>Potencia HVAC: %{z:.1f} %<extra></extra>",
         contours: {
           z: { show: true, usecolormap: true, highlightcolor: "#42f4eb", project: { z: false } }
         }
@@ -727,6 +729,13 @@ const app = {
 
       // Graficar curva de convergencia exactamente como en el gráfico del docente
       this.renderizarGraficoGA(data.historial_mejor, data.historial_promedio);
+
+      // Sincronizar superficie 3D con la nueva tabla de reglas evolucionada
+      this.superficieCargada = false;
+      const tabSuperficie = document.getElementById("tabSuperficie");
+      if (tabSuperficie && tabSuperficie.classList.contains("active")) {
+        this.cargarSuperficie3D();
+      }
 
       this.actualizarStatus("Optimización genética completada con éxito.", false);
     } catch (err) {
