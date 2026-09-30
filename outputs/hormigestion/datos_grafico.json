@@ -1,0 +1,387 @@
+[
+  {
+    "name": "Fase 1: Análisis de Requerimientos",
+    "cards": [
+      {
+        "title": "Inicio",
+        "owner": "JF",
+        "subitems": [
+          "Conformar el equipo del proyecto",
+          "Definir el alcance y los objetivos",
+          "Preparar el caso de negocio y el acta",
+          "Acordar el trabajo con el patrocinador"
+        ],
+        "trello": "https://trello.com/c/ymnStP3p",
+        "id": 31
+      },
+      {
+        "title": "Levantamiento de Requerimientos",
+        "owner": "CJ",
+        "subitems": [
+          "Entrevistar al propietario y al personal",
+          "Levantar procesos de cotización y despacho",
+          "Definir requisitos funcionales y de calidad",
+          "Validar el alcance con el patrocinador"
+        ],
+        "trello": "https://trello.com/c/mEO6j4pK",
+        "id": 1
+      },
+      {
+        "title": "Definición de Métricas de Calidad",
+        "owner": "GS",
+        "subitems": [
+          "Definir métricas de tiempo de cotización",
+          "Medir exactitud de volumen, precio y flete",
+          "Definir criterios de seguridad y disponibilidad",
+          "Establecer criterios de aceptación"
+        ],
+        "trello": "https://trello.com/c/gKooEolA",
+        "id": 12
+      },
+      {
+        "title": "Análisis de Mercado y competidores Locales",
+        "owner": "JS",
+        "subitems": [
+          "Identificar proveedores del área de influencia",
+          "Comparar precios y presencia digital",
+          "Analizar necesidades de los clientes",
+          "Documentar oportunidades y viabilidad"
+        ],
+        "trello": "https://trello.com/c/3YNM8IK7",
+        "id": 13
+      },
+      {
+        "title": "Recopilación de Datos de Planta e Historial",
+        "owner": "JF",
+        "subitems": [
+          "Recopilar resistencias, precios y zonas",
+          "Registrar capacidad de planta y mixers",
+          "Revisar cuadernos de los últimos seis meses",
+          "Recoger datos de lotes y ensayos"
+        ],
+        "trello": "https://trello.com/c/yNKSIEsu",
+        "id": 14
+      },
+      {
+        "title": "Levantamiento Técnico de Datos Históricos de Despacho",
+        "owner": "CJ",
+        "subitems": [
+          "Definir campos del historial de despachos",
+          "Digitalizar fechas, zonas y volúmenes",
+          "Depurar registros incompletos y duplicados",
+          "Validar los datos con el personal de planta"
+        ],
+        "trello": "https://trello.com/c/ttc2Tod8",
+        "id": 15
+      },
+      {
+        "title": "Consolidación de Datos Operativos y Despachos",
+        "owner": "GS",
+        "subitems": [
+          "Unificar los registros operativos",
+          "Normalizar resistencias, zonas y unidades",
+          "Consolidar pedidos y despachos históricos",
+          "Preparar los datos para reportería"
+        ],
+        "trello": "https://trello.com/c/sDhqBI1i",
+        "id": 16
+      },
+      {
+        "title": "Entrega de Informe: Levantamiento de Información",
+        "owner": "JF",
+        "subitems": [
+          "Consolidar requerimientos y hallazgos",
+          "Incluir métricas y análisis de mercado",
+          "Revisar consistencia con el alcance",
+          "Presentar el informe al patrocinador"
+        ],
+        "trello": "https://trello.com/c/8ucyMamy",
+        "id": 25
+      }
+    ]
+  },
+  {
+    "name": "Fase 2: Diseño",
+    "cards": [
+      {
+        "title": "Diseño de Arquitectura Front-end y Backend",
+        "owner": "CJ",
+        "subitems": [
+          "Definir componentes frontend y backend",
+          "Diseñar servicios y contratos de API",
+          "Definir seguridad y flujo de información",
+          "Validar la arquitectura del sistema"
+        ],
+        "trello": "https://trello.com/c/JOuCQ2fM",
+        "id": 2
+      },
+      {
+        "title": "Diseño de Infraestructura usando Contenedores",
+        "owner": "GS",
+        "subitems": [
+          "Definir servicios de los contenedores",
+          "Diseñar redes y volúmenes persistentes",
+          "Configurar variables por entorno",
+          "Planificar respaldos y recuperación"
+        ],
+        "trello": "https://trello.com/c/bnIqFzi1",
+        "id": 4
+      },
+      {
+        "title": "Modelado de la Base de datos",
+        "owner": "JS",
+        "subitems": [
+          "Modelar clientes, solicitudes y despachos",
+          "Modelar mixers, turnos, lotes y ensayos",
+          "Definir relaciones y reglas de integridad",
+          "Diseñar el diccionario de datos"
+        ],
+        "trello": "https://trello.com/c/juIqFvkB",
+        "id": 3
+      },
+      {
+        "title": "Diseño de Acceso y roles de Usuario",
+        "owner": "JF",
+        "subitems": [
+          "Identificar perfiles y permisos",
+          "Diseñar autenticación y autorización",
+          "Restringir operaciones administrativas",
+          "Validar accesos de cada rol"
+        ],
+        "trello": "https://trello.com/c/k2mFh79E",
+        "id": 5
+      },
+      {
+        "title": "Prototipos del Cliente, Bocetos de Interfaces UI/UX",
+        "owner": "JF",
+        "subitems": [
+          "Diseñar navegación del sitio y catálogo",
+          "Prototipar formularios de cotización",
+          "Diseñar pantallas de gestión y despacho",
+          "Validar bocetos con el patrocinador"
+        ],
+        "trello": "https://trello.com/c/gDqu3HVj",
+        "id": 6
+      },
+      {
+        "title": "Documento de Arquitectura y Diseño",
+        "owner": "CJ",
+        "subitems": [
+          "Documentar componentes y sus relaciones",
+          "Incluir modelo y diccionario de datos",
+          "Registrar infraestructura y seguridad",
+          "Revisar y entregar el diseño técnico"
+        ],
+        "trello": "https://trello.com/c/LjCz6kt0",
+        "id": 8
+      }
+    ]
+  },
+  {
+    "name": "Fase 3: Desarrollo",
+    "cards": [
+      {
+        "title": "Módulo cliente: Sitio web y catálogo técnico",
+        "owner": "JS",
+        "subitems": [
+          "Crear el entorno del módulo cliente",
+          "Configurar componentes y navegación",
+          "Implementar sitio y catálogo de resistencias",
+          "Validar contenido y diseño adaptable"
+        ],
+        "trello": "https://trello.com/c/dCV9XQpE",
+        "id": 18
+      },
+      {
+        "title": "Módulo cliente: Cotizador automático",
+        "owner": "CJ",
+        "subitems": [
+          "Crear formulario de dimensiones y resistencia",
+          "Calcular volumen requerido en m³",
+          "Aplicar precios y flete según la zona",
+          "Registrar y validar la solicitud del cliente"
+        ],
+        "trello": "https://trello.com/c/7O7zYjER",
+        "id": 19
+      },
+      {
+        "title": "Módulo administrador: Gestión de solicitudes",
+        "owner": "JF",
+        "subitems": [
+          "Implementar listado y consulta de solicitudes",
+          "Gestionar estados de atención del pedido",
+          "Registrar datos del cliente y su obra",
+          "Validar datos y permisos de acceso"
+        ],
+        "trello": "https://trello.com/c/0trpHdRw",
+        "id": 20
+      },
+      {
+        "title": "Módulo administrador: Control en el mixer",
+        "owner": "GS",
+        "subitems": [
+          "Registrar mixers, capacidad y turnos",
+          "Asignar pedidos a vehículo y horario",
+          "Controlar cruces y ventana útil de 90 min",
+          "Registrar carga, lote y datos de ensayo"
+        ],
+        "trello": "https://trello.com/c/dLupfUyy",
+        "id": 21
+      },
+      {
+        "title": "Módulo administrativo: Dashboard y reportería",
+        "owner": "JS",
+        "subitems": [
+          "Consolidar indicadores de cotización",
+          "Reportar demanda por resistencia y zona",
+          "Diseñar panel de proyección de demanda",
+          "Mostrar recomendaciones y alerta semanal"
+        ],
+        "trello": "https://trello.com/c/OXziU13h",
+        "id": 22
+      },
+      {
+        "title": "Integración de módulos administrador y cliente",
+        "owner": "CJ",
+        "subitems": [
+          "Conectar módulo cliente con las API",
+          "Integrar solicitudes y programación",
+          "Unificar autenticación y manejo de errores",
+          "Verificar el flujo completo del pedido"
+        ],
+        "trello": "https://trello.com/c/XlbQoBil",
+        "id": 23
+      },
+      {
+        "title": "Documentación de plan de desarrollo e integración",
+        "owner": "JF",
+        "subitems": [
+          "Documentar módulos y dependencias",
+          "Registrar configuración del desarrollo",
+          "Describir contratos y flujo de integración",
+          "Preparar guía de ejecución y entrega"
+        ],
+        "trello": "https://trello.com/c/QwfHHBng",
+        "id": 24
+      }
+    ]
+  },
+  {
+    "name": "Fase 4: Pruebas y Validación",
+    "cards": [
+      {
+        "title": "Ejecución de Pruebas funcionales por Módulo",
+        "owner": "GS",
+        "subitems": [
+          "Diseñar casos de prueba por módulo",
+          "Verificar cálculo de volumen, precio y flete",
+          "Probar despacho, trazabilidad y permisos",
+          "Registrar defectos y resultados"
+        ],
+        "trello": "https://trello.com/c/tHg5N6Dr",
+        "id": 7
+      },
+      {
+        "title": "Validación de Pruebas por QA",
+        "owner": "JS",
+        "subitems": [
+          "Revisar evidencias y criterios de calidad",
+          "Comprobar correcciones de los defectos",
+          "Ejecutar pruebas de regresión",
+          "Emitir resultado de validación por QA"
+        ],
+        "trello": "https://trello.com/c/7uirbfMH",
+        "id": 9
+      },
+      {
+        "title": "Validación del Usuario Final",
+        "owner": "CJ",
+        "subitems": [
+          "Preparar escenarios reales de uso",
+          "Validar cotización y despacho con el usuario",
+          "Recoger observaciones del patrocinador",
+          "Documentar la aceptación de la solución"
+        ],
+        "trello": "https://trello.com/c/Oo3b0sWS",
+        "id": 10
+      },
+      {
+        "title": "Documentación de Pruebas Finales y Validación de Usuario",
+        "owner": "JF",
+        "subitems": [
+          "Consolidar casos y resultados de prueba",
+          "Documentar defectos y correcciones",
+          "Adjuntar evidencias de validación",
+          "Entregar el informe final de pruebas"
+        ],
+        "trello": "https://trello.com/c/pwkCS87u",
+        "id": 11
+      }
+    ]
+  },
+  {
+    "name": "Fase 5: Implantación y Despliegue",
+    "cards": [
+      {
+        "title": "Despliegue en Producción",
+        "owner": "GS",
+        "subitems": [
+          "Preparar servidor, dominio y contenedores",
+          "Configurar base de datos y servicios",
+          "Habilitar seguridad y respaldos diarios",
+          "Verificar disponibilidad en producción"
+        ],
+        "trello": "https://trello.com/c/P3boNxvT",
+        "id": 26
+      },
+      {
+        "title": "Documentación y Manual de Usuario",
+        "owner": "JS",
+        "subitems": [
+          "Documentar acceso y perfiles de usuario",
+          "Explicar catálogo, cotización y solicitudes",
+          "Describir despacho, lotes y reportería",
+          "Incluir respaldos y recuperación del servicio"
+        ],
+        "trello": "https://trello.com/c/RheliwWY",
+        "id": 27
+      },
+      {
+        "title": "Capacitación al Personal",
+        "owner": "CJ",
+        "subitems": [
+          "Preparar material y ejemplos de uso",
+          "Capacitar al personal durante cuatro horas",
+          "Practicar cotización y programación",
+          "Resolver dudas y comprobar el aprendizaje"
+        ],
+        "trello": "https://trello.com/c/OrTGGVQc",
+        "id": 28
+      },
+      {
+        "title": "Entrega de Manuales e Informes Finales",
+        "owner": "JF",
+        "subitems": [
+          "Consolidar manuales e informes del proyecto",
+          "Entregar credenciales y documentación",
+          "Revisar entregables con el patrocinador",
+          "Preparar presentación y defensa final"
+        ],
+        "trello": "https://trello.com/c/4W4iOeTe",
+        "id": 29
+      },
+      {
+        "title": "FIN",
+        "owner": "JF",
+        "subitems": [
+          "Verificar todos los entregables acordados",
+          "Obtener aceptación del patrocinador",
+          "Registrar lecciones aprendidas",
+          "Formalizar el cierre del proyecto"
+        ],
+        "trello": "https://trello.com/c/bjXEOoOm",
+        "id": 30
+      }
+    ]
+  }
+]

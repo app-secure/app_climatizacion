@@ -1,828 +1,1088 @@
-/* ==========================================================================
-   MATLAB Fuzzy Logic Designer - Modernized CSS
-   Tema: MATLAB Desktop & Simulink Block Diagram + SCADA Datacenter
-   ========================================================================== */
-
 :root {
-  --matlab-blue: #0076a8;
-  --matlab-blue-dark: #005a82;
-  --matlab-blue-light: #e6f3f9;
-  --matlab-header-bg: #005a82;
-  --matlab-sidebar-bg: #f8fafc;
-  --matlab-card-bg: #ffffff;
-  --matlab-border: #cbd5e1;
-  --matlab-border-light: #e2e8f0;
-  --matlab-text: #0f172a;
-  --matlab-text-muted: #64748b;
-  --matlab-accent: #0284c7;
-  --matlab-green: #10b981;
-  --matlab-orange: #f59e0b;
-  --matlab-red: #ef4444;
-
-  --fis-box-bg: #ffffff;
-  --fis-box-border: #0284c7;
-  --fis-center-bg: #f0fdf4;
-  --fis-center-border: #16a34a;
-
-  --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  --font-mono: "Consolas", "Courier New", monospace;
+  --accent: #007da5;
+  --accent-dark: #006080;
+  --text: #263749;
+  --muted: #697b8c;
+  --border: #ccd6df;
+  --surface: #f6f8fa;
+  --mono: "Cascadia Code","DejaVu Sans Mono",Consolas,monospace;
+  font-family: "Segoe UI",Arial,sans-serif;
+  font-size: 12px;
+  color: var(--text);
+  background: #e6ebef;
 }
 
 * {
   box-sizing: border-box;
+}
+
+body {
   margin: 0;
-  padding: 0;
 }
 
-html, body {
-  width: 100%;
+button,input,select {
+  font: inherit;
+  outline-offset: 3px;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled,select:disabled {
+  cursor: wait;
+  opacity: .55;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+}
+
+[hidden] {
+  display: none !important;
+}
+
+h1,h2,p {
+  margin: 0;
+}
+
+.designer-app {
   height: 100vh;
-  overflow: hidden;
-  font-family: var(--font-family);
-  font-size: 12px;
-  color: var(--matlab-text);
-  background-color: #f1f5f9;
-  user-select: none;
-}
-
-/* Aplicación Principal */
-.matlab-app {
+  height: 100dvh;
+  min-height: 580px;
   display: flex;
   flex-direction: column;
-  width: 100vw;
-  height: 100vh;
-  overflow: hidden;
+  border-top: 4px solid var(--accent-dark);
 }
 
-/* ==========================================================================
-   1. BARRA DE TÍTULO SUPERIOR
-   ========================================================================== */
-.matlab-titlebar {
+.titlebar {
+  min-height: 60px;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 10px 20px;
+  background: white;
+  border-bottom: 1px solid var(--border);
+}
+
+.brand-mark {
+  width: 32px;
+  height: 32px;
+  border: 1px solid #a9c9d6;
+  background: #edf6fa;
+  color: var(--accent);
+  text-align: center;
+  font: italic 27px Georgia,serif;
+}
+
+.titlebar h1 {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: .1px;
+}
+
+.titlebar p {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 3px;
+}
+
+.titlebar-label {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--muted);
+  padding: 6px 10px;
+  background: var(--surface);
+  border: 1px solid #e3e8ed;
+}
+
+.designer-body {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 268px minmax(0,1fr);
+  gap: 5px;
+  padding: 5px;
+}
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: white;
+}
+
+.side-panel {
+  flex-shrink: 0;
+}
+
+.side-panel:not(.daily-results) {
+  min-height: 0;
+  overflow: auto;
+  flex-shrink: 1;
+}
+
+.panel-heading {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .25px;
+  background: linear-gradient(white,#edf1f5);
+  border-bottom: 1px solid var(--border);
+}
+
+.panel-heading span {
+  color: var(--accent);
+  font-size: 15px;
+}
+
+.panel-body {
+  padding: 12px;
+}
+
+.field-row {
+  display: grid;
+  grid-template-columns: 105px minmax(0,1fr);
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 9px;
+  font-size: 11px;
+}
+
+input,select {
+  min-width: 0;
+  width: 100%;
+  border: 1px solid #c7d3de;
+  border-radius: 2px;
+  background: white;
+  padding: 5px 6px;
+  color: var(--text);
+}
+
+.field-row select {
+  font-size: 10px;
+  padding: 5px 3px;
+}
+
+.field-row input {
+  text-align: right;
+  font-family: var(--mono);
+}
+
+.field-row output {
+  border: 1px solid #e1e6ec;
+  background: var(--surface);
+  padding: 5px 6px;
+  border-radius: 2px;
+  font-size: 10px;
+}
+
+.inspector-section-title {
+  border-top: 1px solid #e5eaef;
+  padding-top: 12px;
+  margin: 13px 0 10px;
+  color: var(--accent-dark);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.coordinates .field-row {
+  margin-bottom: 6px;
+}
+
+.coordinate-value {
+  font: 11px var(--mono) !important;
+  text-align: right;
+}
+
+.vector-label {
+  color: var(--muted);
+  font-size: 10px;
+  margin: 12px 0 5px;
+}
+
+.vector-value {
+  display: block;
+  padding: 7px;
+  border: 1px solid #d7e0e8;
+  background: #f8fafc;
+  font: 11px var(--mono);
+  margin-bottom: 11px;
+}
+
+.button {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 11px;
+  color: var(--text);
+  border: 1px solid #c5d1dc;
+  border-radius: 3px;
+  background: linear-gradient(white,#f1f4f7);
+  font-weight: 600;
+}
+
+.button:hover {
+  background: #eaf2f7;
+  border-color: #83b6c8;
+}
+
+.button-primary {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent-dark);
+}
+
+.button-primary:hover {
+  background: var(--accent-dark);
+}
+
+.panel-body > .button {
+  width: 100%;
+}
+
+.button-small {
+  font-size: 11px;
+  padding: 5px 8px;
+}
+
+.panel-note {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.45;
+  margin-top: 10px;
+}
+
+.rule-state {
+  margin-top: 18px;
+  border: 1px solid #dfe6ed;
+  background: #f7fafc;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 11px;
+}
+
+.rule-state strong {
+  color: var(--accent-dark);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.rule-state b {
+  float: right;
+  color: var(--accent);
+}
+
+.daily-results {
+  margin-top: auto;
+  border-top: 1px solid var(--border);
+}
+
+.result-body {
+  padding: 10px 14px;
+}
+
+.daily-metric {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: baseline;
+  padding: 13px 0;
+}
+
+.daily-metric + .daily-metric {
+  border-top: 1px solid #e6ecf1;
+}
+
+.daily-metric > span {
+  grid-column: 1 / -1;
+  font-size: 11px;
+  color: var(--muted);
+  margin-bottom: 5px;
+}
+
+.daily-metric strong {
+  font-size: 26px;
+  font-weight: 600;
+  color: var(--accent-dark);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -.5px;
+}
+
+.daily-metric small {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.result-source {
+  padding: 0 14px 14px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.workspace {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: #f8fafc;
+  border: 1px solid var(--border);
+}
+
+.workspace-tabs {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 2px;
+  min-height: 34px;
+  background: #e9edf1;
+  border-bottom: 1px solid var(--border);
+  padding: 4px 6px 0;
+}
+
+.workspace-tab {
+  align-self: stretch;
+  border: 1px solid transparent;
+  border-bottom: 0;
+  color: #57697b;
+  background: transparent;
+  padding: 7px 17px;
+  font-size: 11px;
+}
+
+.workspace-tab span {
+  margin-right: 5px;
+}
+
+.workspace-tab:hover {
+  background: #f2f6f9;
+}
+
+.workspace-tab.active {
+  background: #f8fafc;
+  color: var(--accent-dark);
+  border-color: var(--border);
+  border-top: 2px solid var(--accent);
+  margin-bottom: -1px;
+  font-weight: 600;
+}
+
+.workspace-caption {
+  color: var(--muted);
+  margin: 0 10px 4px auto;
+  font-size: 10px;
+}
+
+.workspace-pane {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  padding: 14px 18px;
+  overflow: auto;
+}
+
+.view-heading {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 38px;
-  background: linear-gradient(90deg, #005a82 0%, #0076a8 100%);
-  color: #ffffff;
-  padding: 0 16px;
+  gap: 12px;
+  padding: 0 0 13px;
+  border-bottom: 1px solid #e0e7ee;
   flex-shrink: 0;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
-  z-index: 10;
 }
 
-.titlebar-brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+.view-heading h2 {
   font-size: 13px;
   font-weight: 600;
-  letter-spacing: 0.2px;
 }
 
-.titlebar-brand i {
-  font-size: 16px;
-  color: #38bdf8;
-}
-
-.titlebar-status {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+.view-heading p {
   font-size: 11px;
-}
-
-.titlebar-tag {
-  background: rgba(255, 255, 255, 0.15);
-  padding: 3px 8px;
-  border-radius: 4px;
-  font-weight: 500;
-}
-
-/* ==========================================================================
-   2. CUERPO PRINCIPAL (SIDEBAR + WORKSPACE)
-   ========================================================================== */
-.matlab-body {
-  display: flex;
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-}
-
-/* SIDEBAR IZQUIERDO */
-.matlab-sidebar {
-  width: 320px;
-  min-width: 320px;
-  max-width: 320px;
-  background-color: var(--matlab-sidebar-bg);
-  border-right: 1px solid var(--matlab-border);
-  display: flex;
-  flex-direction: column;
-  overflow-y: auto;
-  padding: 12px;
-  gap: 12px;
-}
-
-/* Tarjetas y Secciones del Sidebar */
-.sidebar-panel {
-  background: var(--matlab-card-bg);
-  border: 1px solid var(--matlab-border);
-  border-radius: 6px;
-  overflow: hidden;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
-}
-
-.sidebar-panel-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 12px;
-  background: #f1f5f9;
-  border-bottom: 1px solid var(--matlab-border-light);
-  font-weight: 600;
-  font-size: 11.5px;
-  color: #1e293b;
-}
-
-.sidebar-panel-header i {
-  color: var(--matlab-blue);
-  margin-right: 6px;
-}
-
-.sidebar-panel-body {
-  padding: 10px 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-/* Inputs numéricos de parámetros GA */
-.ga-input-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 11.5px;
-}
-
-.ga-input-row label {
-  color: #334155;
-  font-weight: 500;
-}
-
-.ga-input-row input {
-  width: 70px;
-  padding: 4px 6px;
-  border: 1px solid var(--matlab-border);
-  border-radius: 4px;
-  font-family: var(--font-mono);
-  font-size: 11.5px;
-  text-align: right;
-  font-weight: 600;
-  color: #0f172a;
-}
-
-.ga-input-row input:focus {
-  outline: none;
-  border-color: var(--matlab-blue);
-  box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.2);
-}
-
-/* Botón principal GA */
-.btn-evolucionar-ga {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  width: 100%;
-  padding: 9px 12px;
-  background: linear-gradient(180deg, #0284c7 0%, #0076a8 100%);
-  color: #ffffff;
-  border: 1px solid #005a82;
-  border-radius: 5px;
-  font-weight: 600;
-  font-size: 12px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  box-shadow: 0 2px 4px rgba(2, 132, 199, 0.25);
-}
-
-.btn-evolucionar-ga:hover:not(:disabled) {
-  background: linear-gradient(180deg, #0369a1 0%, #004e70 100%);
-}
-
-.btn-evolucionar-ga:disabled {
-  opacity: 0.65;
-  cursor: not-allowed;
-  box-shadow: none;
-}
-
-/* Grid de Tarjetas KPI */
-.kpi-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-}
-
-.kpi-card {
-  background: #f8fafc;
-  border: 1px solid var(--matlab-border-light);
-  border-radius: 5px;
-  padding: 8px 10px;
-  display: flex;
-  flex-direction: column;
-}
-
-.kpi-card.full-width {
-  grid-column: span 2;
-}
-
-.kpi-title {
-  font-size: 10px;
-  font-weight: 600;
-  text-transform: uppercase;
-  color: var(--matlab-text-muted);
-  letter-spacing: 0.3px;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.kpi-value {
-  font-size: 16px;
-  font-weight: 700;
-  font-family: var(--font-mono);
-  color: #0f172a;
-  margin: 3px 0 1px 0;
-}
-
-.kpi-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 10.5px;
-  font-weight: 600;
-  padding: 2px 6px;
-  border-radius: 3px;
-  width: fit-content;
-}
-
-.kpi-badge.badge-green {
-  background: #dcfce7;
-  color: #15803d;
-}
-
-.kpi-badge.badge-blue {
-  background: #e0f2fe;
-  color: #0369a1;
-}
-
-.kpi-subtext {
-  font-size: 10.5px;
-  color: #64748b;
-}
-
-/* Sliders del Probador Manual */
-.manual-slider-group {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.manual-slider-label {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 11px;
-}
-
-.manual-slider-label span.name {
-  color: #334155;
-  font-weight: 500;
-}
-
-.manual-slider-label span.value {
-  font-family: var(--font-mono);
-  font-weight: 700;
-  color: #0369a1;
-  background: #f1f5f9;
-  padding: 1px 5px;
-  border-radius: 3px;
-}
-
-.manual-slider-group input[type="range"] {
-  width: 100%;
-  height: 4px;
-  accent-color: var(--matlab-blue);
-  cursor: pointer;
-}
-
-.btn-calc-inferencia {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 6px 10px;
-  background: #ffffff;
-  border: 1px solid var(--matlab-border);
-  border-radius: 4px;
-  font-size: 11.5px;
-  font-weight: 600;
-  color: #1e293b;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.btn-calc-inferencia:hover {
-  background: #f1f5f9;
-  border-color: #94a3b8;
-}
-
-.inferencia-meter-box {
-  background: #f8fafc;
-  border: 1px solid var(--matlab-border-light);
-  border-radius: 5px;
-  padding: 8px 10px;
-  margin-top: 4px;
-}
-
-.inferencia-meter-title {
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--matlab-text-muted);
-  text-transform: uppercase;
-}
-
-.inferencia-meter-val {
-  font-size: 22px;
-  font-weight: 800;
-  font-family: var(--font-mono);
-  color: #0284c7;
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-}
-
-.inferencia-meter-val span.label-acc {
-  font-size: 11px;
-  padding: 2px 8px;
-  border-radius: 3px;
-  background: #e0f2fe;
-  color: #0369a1;
-  font-family: var(--font-family);
-  font-weight: 700;
-}
-
-.meter-progress-bg {
-  width: 100%;
-  height: 6px;
-  background: #e2e8f0;
-  border-radius: 3px;
-  overflow: hidden;
+  color: var(--muted);
   margin-top: 5px;
+  line-height: 1.5;
 }
 
-.meter-progress-fill {
-  height: 100%;
-  width: 0%;
-  background: linear-gradient(90deg, #10b981 0%, #0284c7 60%, #ef4444 100%);
-  transition: width 0.25s ease;
-}
-
-/* ==========================================================================
-   3. WORKSPACE CENTRAL (PESTAÑAS)
-   ========================================================================== */
-.matlab-center {
+.diagram-view {
   flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  min-width: 0;
-  background-color: #ffffff;
-  overflow: hidden;
 }
 
-.center-tabs {
+.inference-controls {
   display: flex;
-  background-color: #e2e8f0;
-  border-bottom: 1px solid var(--matlab-border);
-  padding: 4px 8px 0 8px;
-  gap: 4px;
-  flex-shrink: 0;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 24px 10px 10px;
 }
 
-.center-tab {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  font-size: 11.5px;
+.input-label {
+  color: var(--text);
   font-weight: 600;
-  color: #475569;
-  background: #cbd5e1;
-  border: 1px solid #cbd5e1;
-  border-bottom: none;
-  border-radius: 5px 5px 0 0;
-  cursor: pointer;
-  transition: all 0.15s ease;
+  align-self: center;
+  margin-right: 3px;
 }
 
-.center-tab:hover {
-  background: #f1f5f9;
-  color: #0f172a;
+.input-field {
+  width: 90px;
 }
 
-.center-tab.active {
-  background: #ffffff;
-  color: var(--matlab-blue);
-  border-color: var(--matlab-border);
-  border-top: 2px solid var(--matlab-blue);
-  margin-bottom: -1px;
-}
-
-.center-content {
-  flex: 1;
-  position: relative;
-  min-height: 0;
-  overflow: hidden;
-}
-
-.tab-pane {
-  display: none;
-  width: 100%;
-  height: 100%;
-  overflow-y: auto;
-  padding: 16px;
-}
-
-.tab-pane.active {
-  display: flex;
-  flex-direction: column;
-}
-
-/* ==========================================================================
-   TAB 1: SIMULACIÓN 24H (LAZO CERRADO)
-   ========================================================================== */
-.simulacion-layout {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  gap: 12px;
-}
-
-.simulacion-header-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 12px;
-  background: #f8fafc;
-  border: 1px solid var(--matlab-border);
-  border-radius: 5px;
-  flex-shrink: 0;
-}
-
-.simulacion-header-bar span.title {
-  font-weight: 700;
-  font-size: 12px;
-  color: #1e293b;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.simulacion-plots-container {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  gap: 12px;
-  min-height: 0;
-}
-
-.plot-card {
-  flex: 1;
-  min-height: 230px;
-  background: #ffffff;
-  border: 1px solid var(--matlab-border);
-  border-radius: 6px;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
-}
-
-.plot-card-header {
-  padding: 6px 12px;
-  background: #f8fafc;
-  border-bottom: 1px solid var(--matlab-border-light);
-  font-size: 11px;
-  font-weight: 600;
-  color: #334155;
-  display: flex;
-  justify-content: space-between;
-}
-
-.plot-card-body {
-  flex: 1;
-  width: 100%;
-  min-height: 0;
-  position: relative;
-}
-
-/* ==========================================================================
-   TAB 2: DIAGRAMA FIS (SISTEMA FIS ESTILO MATLAB)
-   ========================================================================== */
-.fis-diagram-container {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  gap: 16px;
-  overflow-y: auto;
-}
-
-.fis-header-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 14px;
-  background: #f8fafc;
-  border: 1px solid var(--matlab-border);
-  border-radius: 5px;
-  flex-shrink: 0;
-}
-
-.fis-canvas-area {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #ffffff;
-  border: 1px solid var(--matlab-border);
-  border-radius: 8px;
-  padding: 24px;
-  position: relative;
-  min-height: 380px;
-  box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.02);
-}
-
-/* Columna de Entradas */
-.fis-inputs-col {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  z-index: 2;
-  width: 220px;
-}
-
-/* Bloque FIS Individual */
-.fis-block {
-  background: var(--fis-box-bg);
-  border: 2px solid var(--fis-box-border);
-  border-radius: 6px;
-  padding: 8px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  position: relative;
-}
-
-.fis-block-header {
-  font-weight: 700;
-  font-size: 11px;
-  color: #0f172a;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.fis-block-range {
-  font-size: 9.5px;
-  color: var(--matlab-text-muted);
-}
-
-.fis-mini-canvas-container {
-  width: 100%;
-  height: 75px;
-  background: #ffffff;
-  border: 1px solid #cbd5e1;
-  border-radius: 4px;
-  position: relative;
-  overflow: hidden;
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04);
-}
-
-.fis-mini-canvas-container canvas {
-  width: 100% !important;
-  height: 100% !important;
+.input-field label {
   display: block;
+  font-size: 10px;
+  color: var(--muted);
+  margin-bottom: 5px;
 }
 
-/* Conectores SVG */
-.fis-svg-connector {
+.input-field input {
+  text-align: right;
+  font-family: var(--mono);
+  background: white;
+  height: 29px;
+}
+
+.button-run {
+  height: 29px;
+  padding: 5px 10px;
+}
+
+.input-vector {
+  font: 11px var(--mono);
+  color: var(--muted);
+  align-self: end;
+  padding: 8px 0 7px 5px;
+}
+
+.diagram-scroll {
+  flex: 1;
+  min-height: 380px;
+  display: flex;
+  overflow-x: auto;
+}
+
+.fis-diagram {
+  position: relative;
+  width: 100%;
+  min-width: 710px;
+  min-height: 380px;
+  display: grid;
+  grid-template-columns: 164px 148px minmax(245px,300px);
+  justify-content: center;
+  align-items: center;
+  gap: clamp(42px,5vw,90px);
+  padding: 20px 14px;
+}
+
+.fis-connectors {
   position: absolute;
-  top: 0;
-  left: 0;
+  inset: 0;
   width: 100%;
   height: 100%;
   pointer-events: none;
+}
+
+.fis-connectors > path {
+  fill: none;
+  stroke-width: 1.7;
+}
+
+.connector-input {
+  stroke: #008cbb;
+  marker-end: url(#arrowIn);
+}
+
+.connector-output {
+  stroke: #db6528;
+  marker-end: url(#arrowOut);
+}
+
+.fis-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  position: relative;
   z-index: 1;
 }
 
-/* Bloque Mamdani Central */
-.fis-center-col {
-  margin: 0 50px;
-  z-index: 2;
-}
-
-.fis-center-block {
-  background: var(--fis-center-bg);
-  border: 2px solid var(--fis-center-border);
-  border-radius: 8px;
-  padding: 16px 20px;
-  width: 220px;
-  text-align: center;
-  box-shadow: 0 4px 10px rgba(22, 163, 74, 0.15);
+.variable-block {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  width: 100%;
+  background: white;
+  border: 1px solid #8a9dad;
+  border-radius: 2px;
+  padding: 9px 8px 7px;
+  box-shadow: 0 2px 4px #243d5014;
+  position: relative;
+  z-index: 1;
 }
 
-.fis-center-title {
-  font-weight: 700;
-  font-size: 13px;
-  color: #14532d;
+.variable-block:hover,.variable-block.selected {
+  border-color: #12a0cc;
+  box-shadow: 0 0 0 2px #009ccc10,0 2px 6px #243d5014;
 }
 
-.fis-center-type {
-  font-size: 11px;
-  color: #15803d;
-  font-style: italic;
-  font-weight: 600;
+.mini-chart {
+  width: 100%;
+  height: 45px;
+  display: block;
 }
 
-.fis-rules-badge {
-  display: inline-block;
-  padding: 3px 10px;
-  background: #16a34a;
-  color: #ffffff;
-  font-weight: 700;
-  font-size: 11px;
-  border-radius: 12px;
-  margin: 4px auto;
-}
-
-.fis-center-props {
-  font-size: 10px;
-  color: #166534;
-  text-align: left;
-  border-top: 1px dashed #bbf7d0;
-  padding-top: 6px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-/* Columna de Salida */
-.fis-output-col {
-  z-index: 2;
-  width: 230px;
-}
-
-.fis-block.output-block {
-  border-color: #f59e0b;
-}
-
-/* ==========================================================================
-   TAB 3: TABLA DE REGLAS (36 REGLAS)
-   ========================================================================== */
-.table-rules-layout {
-  display: flex;
-  flex-direction: column;
+canvas {
+  width: 100%;
   height: 100%;
+  display: block;
+}
+
+.block-name {
+  font-size: 10px;
+  color: #00688c;
+  margin-top: 7px;
+}
+
+.block-range {
+  color: #8a99a6;
+  font-size: 9px;
+  margin-top: 4px;
+}
+
+.mamdani-block {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   gap: 10px;
+  padding: 20px 9px;
+  min-height: 200px;
+  background: linear-gradient(white,#edf2f7);
+  border: 1.5px solid #334c60;
+  border-radius: 2px;
+  color: var(--text);
+  box-shadow: 0 2px 4px #243d5026;
+}
+
+.mamdani-block:hover {
+  border-color: var(--accent);
+  background: #f0f8fb;
+}
+
+.engine-symbol {
+  font: italic 30px Georgia,serif;
+  color: #8aabc1;
+}
+
+.mamdani-block strong {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.engine-rules {
+  font-size: 11px;
+  font-weight: 600;
+  padding-bottom: 13px;
+  border-bottom: 1px dashed #c8d5df;
+  width: 85%;
+  margin-bottom: 2px;
+}
+
+.engine-method {
+  font-size: 9px;
+  color: #7790a3;
+}
+
+.fis-output {
+  position: relative;
+}
+
+.centroid-result {
+  position: absolute;
+  bottom: calc(100% + 19px);
+  width: 100%;
+  text-align: center;
+  color: #cd581f;
+  font: 600 14px var(--mono);
+}
+
+.output-chart {
+  height: 145px;
+  display: block;
+  width: 100%;
+}
+
+.output-block .block-name {
+  color: #c15c25;
+}
+
+.diagram-footnote {
+  border-top: 1px solid #e0e7ee;
+  padding: 11px 2px 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+  font-size: 10px;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+.tiny-line {
+  display: inline-block;
+  width: 17px;
+  height: 2px;
+  background: #008cbb;
+  margin-left: 4px;
+}
+
+.tiny-line.orange {
+  background: #db6528;
+  margin-left: 12px;
+}
+
+.diagram-footnote-end {
+  margin-left: auto;
+}
+
+.membership-view {
+  flex: 1;
+  min-height: 370px;
+  display: flex;
+  flex-direction: column;
+}
+
+.chart-legend {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 5px;
+  padding: 14px 0 8px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #647587;
+  font-size: 10px;
+  padding: 5px 7px;
+  border-radius: 2px;
+}
+
+.legend-item.active {
+  border-color: #c3d8e3;
+  background: white;
+  color: var(--text);
+}
+
+.legend-swatch {
+  width: 9px;
+  height: 9px;
+}
+
+.membership-chart {
+  flex: 1;
+  min-height: 310px;
+  background: white;
+  border: 1px solid #e3e9ef;
+}
+
+.chart-note {
+  font-size: 10px;
+  color: var(--muted);
+  padding-top: 11px;
+}
+
+.count-badge {
+  color: var(--accent-dark);
+  border: 1px solid #b8d9e7;
+  background: #eaf5fa;
+  font-size: 11px;
+  padding: 5px 9px;
+  white-space: nowrap;
 }
 
 .rules-toolbar {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 6px 12px;
-  background: #f8fafc;
-  border: 1px solid var(--matlab-border);
-  border-radius: 5px;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 13px 0;
+  font-size: 11px;
+}
+
+.rules-toolbar select {
+  width: 155px;
+}
+
+.rules-toolbar input {
+  width: 210px;
+}
+
+.search-label {
+  margin-left: auto;
 }
 
 .rules-table-container {
   flex: 1;
   overflow: auto;
-  border: 1px solid var(--matlab-border);
-  border-radius: 5px;
-  background: #ffffff;
+  min-height: 230px;
+  border: 1px solid var(--border);
+  background: white;
 }
 
-.matlab-table {
+.rules-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 11.5px;
-  text-align: left;
+  font-size: 11px;
 }
 
-.matlab-table th {
-  background: #f1f5f9;
-  color: #334155;
-  font-weight: 700;
-  padding: 8px 12px;
-  border-bottom: 2px solid var(--matlab-border);
+.rules-table th {
   position: sticky;
   top: 0;
-  z-index: 2;
+  background: #edf2f6;
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  font-weight: 600;
+  z-index: 1;
 }
 
-.matlab-table td {
-  padding: 6px 12px;
-  border-bottom: 1px solid var(--matlab-border-light);
-  color: #1e293b;
+.rules-table th:first-child,.rules-table td:first-child {
+  width: 45px;
+  text-align: center;
+  color: var(--muted);
 }
 
-.matlab-table tr:hover td {
+.rules-table th:last-child,.rules-table td:last-child {
+  width: 60px;
+  text-align: center;
+}
+
+.rules-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #e6ecf1;
+}
+
+.rules-table tbody tr:nth-child(even) {
   background: #f8fafc;
 }
 
-.badge-rack-baja { background: #e0f2fe; color: #0369a1; padding: 2px 6px; border-radius: 3px; font-weight: 600; }
-.badge-rack-optima { background: #dcfce7; color: #15803d; padding: 2px 6px; border-radius: 3px; font-weight: 600; }
-.badge-rack-alta { background: #fef3c7; color: #b45309; padding: 2px 6px; border-radius: 3px; font-weight: 600; }
-.badge-rack-critica { background: #fee2e2; color: #b91c1c; padding: 2px 6px; border-radius: 3px; font-weight: 700; }
-
-.badge-consecuente-minima { background: #dcfce7; color: #15803d; padding: 2px 8px; border-radius: 3px; font-weight: 700; }
-.badge-consecuente-media { background: #e0f2fe; color: #0369a1; padding: 2px 8px; border-radius: 3px; font-weight: 700; }
-.badge-consecuente-alta { background: #fef3c7; color: #b45309; padding: 2px 8px; border-radius: 3px; font-weight: 700; }
-.badge-consecuente-maxima { background: #fee2e2; color: #b91c1c; padding: 2px 8px; border-radius: 3px; font-weight: 800; }
-
-.badge-nivel {
-  font-family: var(--font-mono);
-  font-weight: 700;
-  padding: 2px 8px;
-  border-radius: 4px;
-  background: #f1f5f9;
-  border: 1px solid var(--matlab-border);
+.rules-table tbody tr:hover {
+  background: #eaf4fa;
 }
 
-/* ==========================================================================
-   TAB 4: SUPERFICIE 3D
-   ========================================================================== */
-.surface-container {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  gap: 10px;
+.rule-expression {
+  font: 10px/1.9 var(--mono);
 }
 
-.surface-controls {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 8px 14px;
-  background: #f8fafc;
-  border: 1px solid var(--matlab-border);
-  border-radius: 5px;
+.rule-keyword {
+  color: #728a9d;
+  font-weight: 600;
 }
 
-.surface-plot {
-  flex: 1;
-  width: 100%;
-  min-height: 0;
-  border: 1px solid var(--matlab-border);
-  border-radius: 6px;
+.consequent {
+  display: inline-block;
+  background: #eef5f9;
+  color: #087296;
+  border: 1px solid #dae8f0;
+  border-radius: 2px;
+  padding: 0 5px;
+  font-weight: 600;
 }
 
-/* ==========================================================================
-   4. FOOTER / BARRA DE ESTADO INFERIOR
-   ========================================================================== */
-.matlab-statusbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  height: 26px;
-  background-color: #f1f5f9;
-  border-top: 1px solid var(--matlab-border);
-  padding: 0 14px;
-  font-size: 11px;
-  color: #475569;
+.consequent[data-level="0"] {
+  color: #249060;
+  background: #edf8f1;
+  border-color: #cee8d8;
+}
+
+.consequent[data-level="2"] {
+  color: #a57315;
+  background: #fff8e5;
+  border-color: #f1e4bc;
+}
+
+.consequent[data-level="3"] {
+  color: #c44a4a;
+  background: #fdf1f1;
+  border-color: #f0d4d4;
+}
+
+.gene-value {
+  font: 10px var(--mono);
+  border: 1px solid #d8e2e9;
+  background: #f2f6f9;
+  border-radius: 2px;
+  padding: 3px 6px;
+}
+
+.rules-note {
+  font-size: 10px;
+  color: var(--muted);
+  padding-top: 12px;
+  line-height: 1.5;
+}
+
+.empty-state {
+  padding: 30px;
+  text-align: center;
+  color: var(--muted);
+}
+
+.feedback-bar {
   flex-shrink: 0;
-}
-
-.statusbar-left {
+  padding: 12px 16px;
+  background: #fff2ee;
+  color: #973a27;
+  border-top: 1px solid #ebc2b6;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
+}
+
+.feedback-bar span {
+  flex: 1;
+  line-height: 1.5;
+}
+
+.statusbar {
+  min-height: 28px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 12px;
+  background: #f0f3f6;
+  border-top: 1px solid #d3dce5;
+  color: #62778a;
+  font-size: 10px;
 }
 
 .status-dot {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
-  background-color: #10b981;
+  background: #a2afbc;
+  flex-shrink: 0;
 }
 
-.statusbar-right {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  font-weight: 500;
+.status-dot.ready {
+  background: #20a176;
+}
+
+.status-dot.busy {
+  background: #e1a62b;
+  animation: pulse 1s ease-in-out infinite;
+}
+
+.status-dot.error {
+  background: #ce5948;
+}
+
+.status-context {
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@keyframes pulse {
+  50% {
+    opacity: .35;
+  }
+}
+
+@media (min-width:1450px) {
+  .fis-diagram {
+    gap: 95px;
+    grid-template-columns: 180px 165px 320px;
+  }
+  .mini-chart {
+    height: 60px;
+  }
+  .output-chart {
+    height: 170px;
+  }
+}
+
+@media (max-width:1050px) {
+  .designer-body {
+    grid-template-columns: 245px minmax(0,1fr);
+  }
+  .panel-body {
+    padding: 14px 10px;
+  }
+  .field-row {
+    grid-template-columns: 96px minmax(0,1fr);
+  }
+  .workspace-pane {
+    padding: 13px;
+  }
+  .input-vector,.diagram-footnote-end {
+    display: none;
+  }
+  .rules-toolbar input {
+    width: 160px;
+  }
+}
+
+@media (max-width:800px) {
+  .designer-app {
+    height: auto;
+    min-height: 100dvh;
+  }
+  .titlebar {
+    padding: 12px;
+  }
+  .titlebar-label {
+    display: none;
+  }
+  .designer-body {
+    display: flex;
+    flex-direction: column;
+  }
+  .sidebar {
+    flex-direction: row;
+    overflow: visible;
+    align-items: stretch;
+  }
+  .sidebar > .side-panel {
+    flex: 1;
+    min-width: 0;
+  }
+  .daily-results {
+    margin-top: 0;
+    border-top: 0;
+    border-left: 1px solid var(--border);
+  }
+  .panel-note {
+    font-size: 10px;
+  }
+  .panel-heading {
+    font-size: 10px;
+    padding: 9px;
+  }
+  .workspace {
+    min-height: 620px;
+  }
+  .workspace-pane {
+    min-height: 550px;
+  }
+  .membership-chart {
+    min-height: 380px;
+  }
+  .rules-table-container {
+    max-height: 530px;
+  }
+  .statusbar {
+    align-items: flex-start;
+  }
+  .status-context {
+    display: none;
+  }
+}
+
+@media (max-width:480px) {
+  .sidebar {
+    flex-direction: column;
+  }
+  .daily-results {
+    border-left: 0;
+    border-top: 1px solid var(--border);
+  }
+  .result-body {
+    display: flex;
+    gap: 18px;
+    padding: 8px 12px;
+  }
+  .daily-metric {
+    flex: 1;
+    padding: 6px 0;
+  }
+  .daily-metric + .daily-metric {
+    border-top: 0;
+  }
+  .daily-metric strong {
+    font-size: 23px;
+  }
+  .daily-metric small {
+    grid-column: 1 / -1;
+    margin-top: 3px;
+  }
+  .result-source {
+    padding: 0 12px 10px;
+  }
+  .coordinates {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: 10px;
+  }
+  .coordinates .field-row {
+    display: flex;
+    justify-content: space-between;
+  }
+  .field-row {
+    grid-template-columns: 130px minmax(0,1fr);
+  }
+  .inference-controls {
+    gap: 7px;
+    padding: 18px 0 10px;
+  }
+  .input-label {
+    width: 100%;
+  }
+  .input-field {
+    width: 80px;
+  }
+  .workspace-caption {
+    display: none;
+  }
+  .view-heading {
+    align-items: flex-start;
+  }
+  .view-heading .button {
+    max-width: 105px;
+  }
+  .rules-toolbar {
+    display: grid;
+    grid-template-columns: auto 1fr;
+  }
+  .rules-toolbar select,.rules-toolbar input {
+    width: 100%;
+  }
+  .search-label {
+    margin-left: 0;
+  }
+  .feedback-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+@media (prefers-reduced-motion:reduce) {
+  .status-dot.busy {
+    animation: none;
+  }
 }

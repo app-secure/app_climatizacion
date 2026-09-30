@@ -1,482 +1,106 @@
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sistema de Climatización Inteligente para Datacenter | Lógica Difusa y Algoritmo Genético</title>
-
-  <!-- FontAwesome & Estilos MATLAB -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <meta name="theme-color" content="#006b91">
+  <title>Climatización de Datacenter · Sistema difuso</title>
   <link rel="stylesheet" href="/css/matlab_estilo.css">
-
-  <!-- Chart.js para Curvas de Pertenencia y Plotly para Gráficas Científicas y 3D -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+  <script src="/js/app.js" defer></script>
 </head>
-
 <body>
-
-  <div class="matlab-app">
-
-    <!-- 1. BARRA DE TÍTULO TIPO WINDOWS / MATLAB -->
-    <header class="matlab-titlebar">
-      <div class="titlebar-brand">
-        <i class="fa-solid fa-server"></i>
-        <span>MATLAB Fuzzy Logic Designer — Control de Climatización y Optimización Energética de Datacenter</span>
-      </div>
-      <div class="titlebar-status">
-        <span class="titlebar-tag"><i class="fa-solid fa-microchip"></i> ASHRAE TC 9.9 & Dell R740</span>
-        <span class="titlebar-tag"><i class="fa-solid fa-graduation-cap"></i> UTA — IA</span>
-      </div>
+  <div class="designer-app">
+    <header class="titlebar">
+      <div class="brand-mark" aria-hidden="true">μ</div>
+      <div><h1>Climatización de Datacenter</h1><p>Diseñador de inferencia difusa</p></div>
+      <span class="titlebar-label">Mamdani + Algoritmo Genético</span>
     </header>
-
-    <!-- 2. CUERPO PRINCIPAL (SIDEBAR + WORKSPACE) -->
-    <main class="matlab-body">
-
-      <!-- ==================================================================
-           COLUMNA IZQUIERDA: PARÁMETROS AG, KPIS Y PROBADOR MANUAL
-           ================================================================== -->
-      <aside class="matlab-sidebar">
-
-        <!-- 1. Panel de Parámetros del Algoritmo Genético -->
-        <section class="sidebar-panel">
-          <div class="sidebar-panel-header">
-            <span><i class="fa-solid fa-dna"></i> Parámetros Algoritmo Genético</span>
-            <span style="font-size: 10px; color: var(--matlab-text-muted);">Canónico</span>
-          </div>
-          <div class="sidebar-panel-body">
-            <div class="ga-input-row">
-              <label for="inputPoblacion">Población (N):</label>
-              <input type="number" id="inputPoblacion" value="20" min="10" max="60" step="2">
-            </div>
-            <div class="ga-input-row">
-              <label for="inputGeneraciones">Generaciones (G):</label>
-              <input type="number" id="inputGeneraciones" value="20" min="5" max="100" step="5">
-            </div>
-            <div class="ga-input-row">
-              <label for="inputTasaMutacion">Prob. Mutación (%):</label>
-              <input type="number" id="inputTasaMutacion" value="20" min="1" max="50" step="1">
-            </div>
-            <div class="ga-input-row">
-              <label for="inputTempFijaBase">Termostato Base (°C):</label>
-              <input type="number" id="inputTempFijaBase" value="18.0" min="15.0" max="26.0" step="0.5">
-            </div>
-
-            <button class="btn-evolucionar-ga" id="btnEjecutarGA">
-              <i class="fa-solid fa-play"></i>
-              <span>Evolucionar Reglas con AG</span>
-            </button>
-            <div id="gaProgressStatus" style="font-size: 10.5px; color: var(--matlab-blue-dark); text-align: center; display: none;">
-              <i class="fa-solid fa-spinner fa-spin"></i> Optimizando simulación 96 pasos...
-            </div>
+    <main class="designer-body">
+      <aside class="sidebar" aria-label="Configuración y resultados">
+        <section class="side-panel" id="panelPertenencia">
+          <h2 class="panel-heading"><span aria-hidden="true">⌁</span> Inspector de pertenencia</h2>
+          <div class="panel-body">
+            <div class="field-row"><label for="selectVariable">Variable</label><select id="selectVariable" disabled>
+              <option value="temperatura_rack">temperatura_rack</option><option value="uso_cpu">uso_cpu</option>
+              <option value="temperatura_exterior">temperatura_exterior</option><option value="potencia_enfriamiento">potencia_enfriamiento</option>
+            </select></div>
+            <div class="field-row"><label for="selectConjunto">Subconjunto</label><select id="selectConjunto" disabled><option>Cargando…</option></select></div>
+            <div class="field-row"><span>Tipo de función</span><output id="tipoFuncion">—</output></div>
+            <div class="inspector-section-title">Coordenadas del modelo</div>
+            <div class="coordinates" id="coordenadasConjunto"></div>
+            <div class="vector-label" id="etiquetaVector">Vector</div><output class="vector-value" id="vectorConjunto">—</output>
+            <button type="button" class="button button-primary" id="btnVerPertenencia" disabled>Ver curva completa <span aria-hidden="true">↗</span></button>
           </div>
         </section>
-
-        <!-- 2. Tarjeta de Métricas Ejecutivas (KPIs) -->
-        <section class="sidebar-panel">
-          <div class="sidebar-panel-header">
-            <span><i class="fa-solid fa-gauge-high"></i> Métricas Ejecutivas (KPIs)</span>
-            <span class="kpi-badge badge-green" id="badgeEstadoSolucion">Lazo Cerrado</span>
-          </div>
-          <div class="sidebar-panel-body">
-            <div class="kpi-grid">
-              <!-- Costo Diario AG -->
-              <div class="kpi-card full-width">
-                <span class="kpi-title"><i class="fa-solid fa-dollar-sign"></i> Costo Diario AG</span>
-                <div class="kpi-value" id="kpiCostoDiario">$ -- USD/día</div>
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                  <span class="kpi-badge badge-green" id="kpiAhorroPct">-- % Ahorro</span>
-                  <span class="kpi-subtext" id="kpiAhorroDiarioUsd">vs. Termostato</span>
-                </div>
-              </div>
-
-              <!-- Consumo Diario -->
-              <div class="kpi-card">
-                <span class="kpi-title"><i class="fa-solid fa-bolt"></i> Consumo kWh</span>
-                <div class="kpi-value" id="kpiConsumoKwh">-- kWh</div>
-                <span class="kpi-subtext" id="kpiConsumoMesKwh">-- kWh/mes</span>
-              </div>
-
-              <!-- Monotonía -->
-              <div class="kpi-card">
-                <span class="kpi-title"><i class="fa-solid fa-shield-halved"></i> Monotonía</span>
-                <div class="kpi-value" style="color: #16a34a;" id="kpiViolaciones">0</div>
-                <span class="kpi-badge badge-green">0 Violaciones</span>
-              </div>
-
-              <!-- Temperatura Rack -->
-              <div class="kpi-card full-width">
-                <span class="kpi-title"><i class="fa-solid fa-temperature-three-quarters"></i> Temperatura Rack</span>
-                <div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 3px;">
-                  <span style="font-size: 13px; font-weight: 700; color: #1e293b;">Máx: <strong id="kpiTempMax">-- °C</strong></span>
-                  <span style="font-size: 13px; font-weight: 700; color: #0284c7;">Prom: <strong id="kpiTempProm">-- °C</strong></span>
-                </div>
-                <span class="kpi-subtext" style="color: #16a34a; font-weight: 600; margin-top: 2px;">
-                  <i class="fa-solid fa-check"></i> Cumple estándar ASHRAE (&le; 27 °C)
-                </span>
-              </div>
-            </div>
-          </div>
+        <section class="side-panel" id="panelGenetico" hidden>
+          <h2 class="panel-heading"><span aria-hidden="true">⌘</span> Parámetros AG · Reglas</h2>
+          <form class="panel-body" id="formGenetico">
+            <div class="field-row"><label for="inputPoblacion">Población (N)</label><input type="number" id="inputPoblacion" value="20" min="2" max="60" step="1" required></div>
+            <div class="field-row"><label for="inputGeneraciones">Generaciones</label><input type="number" id="inputGeneraciones" value="20" min="1" max="100" step="1" required></div>
+            <div class="field-row"><label for="inputTasaMutacion">Mutación (%)</label><input type="number" id="inputTasaMutacion" value="20" min="0" max="100" step="1" required></div>
+            <div class="field-row"><label for="inputTempFijaBase">Termostato base (°C)</label><input type="number" id="inputTempFijaBase" value="18" min="15" max="26" step="0.5" required></div>
+            <div class="field-row"><span>Operador</span><output>AND · mínimo</output></div>
+            <button class="button button-primary" id="btnEjecutarGA" disabled><span aria-hidden="true">▶</span> Evolucionar con AG</button>
+            <p class="panel-note" id="gaProgressStatus" role="status" hidden>Evaluando las tablas de reglas. La búsqueda puede tardar unos minutos.</p>
+            <div class="rule-state"><span>Tabla del controlador</span><strong id="estadoReglas">Cargando…</strong><span>Reglas cargadas <b id="totalReglasSidebar">—</b></span></div>
+            <p class="panel-note">El genético busca los consecuentes de 36 reglas. Las funciones de pertenencia permanecen fijas.</p>
+          </form>
         </section>
-
-        <!-- 3. Probador Rápido Manual (Inferencia en Tiempo Real) -->
-        <section class="sidebar-panel">
-          <div class="sidebar-panel-header">
-            <span><i class="fa-solid fa-sliders"></i> Probador Rápido Manual</span>
-            <span style="font-size: 10px; color: var(--matlab-text-muted);">Mamdani</span>
+        <section class="side-panel daily-results" aria-labelledby="tituloResultados">
+          <h2 class="panel-heading" id="tituloResultados"><span aria-hidden="true">▤</span> Resultados del día</h2>
+          <div class="result-body" aria-live="polite">
+            <div class="daily-metric"><span>Costo diario</span><strong id="kpiCostoDiario">—</strong><small>USD / día</small></div>
+            <div class="daily-metric"><span>Consumo energético</span><strong id="kpiConsumoKwh">—</strong><small>kWh / día</small></div>
           </div>
-          <div class="sidebar-panel-body">
-            <!-- Slider T_rack -->
-            <div class="manual-slider-group">
-              <div class="manual-slider-label">
-                <span class="name">Temp. Rack (T_rack):</span>
-                <span class="value" id="lblSliderRack">22.0 °C</span>
-              </div>
-              <input type="range" id="sliderRack" min="10" max="45" step="0.5" value="22.0">
-            </div>
-
-            <!-- Slider CPU -->
-            <div class="manual-slider-group">
-              <div class="manual-slider-label">
-                <span class="name">Uso de CPU:</span>
-                <span class="value" id="lblSliderCpu">50.0 %</span>
-              </div>
-              <input type="range" id="sliderCpu" min="0" max="100" step="1" value="50.0">
-            </div>
-
-            <!-- Slider T_ext -->
-            <div class="manual-slider-group">
-              <div class="manual-slider-label">
-                <span class="name">Temp. Exterior (T_ext):</span>
-                <span class="value" id="lblSliderExt">20.0 °C</span>
-              </div>
-              <input type="range" id="sliderExt" min="0" max="45" step="0.5" value="20.0">
-            </div>
-
-            <button class="btn-calc-inferencia" id="btnCalcularInferencia">
-              <i class="fa-solid fa-calculator"></i>
-              <span>Calcular Inferencia Difusa</span>
-            </button>
-
-            <!-- Resultado de Defuzzificación -->
-            <div class="inferencia-meter-box">
-              <div class="inferencia-meter-title">Potencia Defusificada (Centroide z*)</div>
-              <div class="inferencia-meter-val">
-                <span id="valPotenciaZ">43.3 %</span>
-                <span class="label-acc" id="lblNivelConsecuente">MEDIA</span>
-              </div>
-              <div class="meter-progress-bg">
-                <div class="meter-progress-fill" id="meterPotenciaFill" style="width: 43.3%;"></div>
-              </div>
-            </div>
-          </div>
+          <p class="result-source" id="fuenteResultados">Esperando al controlador…</p>
         </section>
-
       </aside>
-
-      <!-- ==================================================================
-           COLUMNA CENTRAL: PESTAÑAS DEL ESPACIO DE TRABAJO
-           ================================================================== -->
-      <section class="matlab-center">
-
-        <!-- Barra de Pestañas -->
-        <nav class="center-tabs">
-          <button class="center-tab active" data-tab="tabSimulacion" id="tabHeadSimulacion">
-            <i class="fa-solid fa-chart-line"></i> Simulación 24h (Lazo Cerrado)
-          </button>
-          <button class="center-tab" data-tab="tabFIS" id="tabHeadFIS">
-            <i class="fa-solid fa-diagram-project"></i> Sistema FIS (Diagrama de Bloques)
-          </button>
-          <button class="center-tab" data-tab="tabReglas" id="tabHeadReglas">
-            <i class="fa-solid fa-table-list"></i> Base de 36 Reglas
-          </button>
-          <button class="center-tab" data-tab="tabSuperficie" id="tabHeadSuperficie">
-            <i class="fa-solid fa-mountain"></i> Superficie 3D de Control
-          </button>
+      <section class="workspace" aria-label="Espacio de trabajo">
+        <nav class="workspace-tabs" role="tablist" aria-label="Vistas del controlador">
+          <button class="workspace-tab active" id="tabHeadFIS" role="tab" aria-selected="true" aria-controls="tabFIS" data-tab="tabFIS"><span aria-hidden="true">⌁</span> Sistema FIS</button>
+          <button class="workspace-tab" id="tabHeadReglas" role="tab" aria-selected="false" aria-controls="tabReglas" data-tab="tabReglas" tabindex="-1"><span aria-hidden="true">▦</span> Reglas</button>
+          <span class="workspace-caption">3 entradas → 1 salida</span>
         </nav>
-
-        <div class="center-content">
-
-          <!-- --------------------------------------------------------------
-               PESTAÑA 1: SIMULACIÓN 24H (LAZO CERRADO)
-               -------------------------------------------------------------- -->
-          <article class="tab-pane active" id="tabSimulacion">
-            <div class="simulacion-layout">
-              <div class="simulacion-header-bar">
-                <span class="title">
-                  <i class="fa-solid fa-clock-rotate-left" style="color: var(--matlab-blue);"></i>
-                  Simulación Dinámica en Lazo Cerrado de 24 Horas (96 Pasos, &Delta;t = 15 min)
-                </span>
-                <span style="font-size: 11px; color: var(--matlab-text-muted);">
-                  Modelo Térmico con Chiller COP Variable y Penalizaciones ASHRAE / Dell
-                </span>
-              </div>
-
-              <div class="simulacion-plots-container">
-                <!-- Gráfico Superior: Evolución de Temperatura -->
-                <div class="plot-card">
-                  <div class="plot-card-header">
-                    <span><i class="fa-solid fa-temperature-high" style="color: #0284c7;"></i> Evolución Térmica del Rack: Controlador AG vs. Termostato vs. Límites ASHRAE</span>
-                    <span style="color: #16a34a; font-weight: 600;" id="lblEstadoTermicoSimulacion">Banda ASHRAE Segura (18 - 27 °C)</span>
-                  </div>
-                  <div class="plot-card-body" id="plotSimulacionTemperatura"></div>
+        <article class="workspace-pane" id="tabFIS" role="tabpanel" aria-labelledby="tabHeadFIS">
+          <div class="view-heading"><div><h2 id="tituloVistaFIS">Sistema de inferencia difusa</h2><p id="descripcionVistaFIS">Selecciona una variable para ver sus funciones de pertenencia.</p></div><button class="button button-small" id="btnVolverDiagrama" hidden>← Volver al diagrama</button></div>
+          <div id="vistaDiagrama" class="diagram-view">
+            <form class="inference-controls" id="formInferencia">
+              <span class="input-label">Entradas</span>
+              <div class="input-field"><label for="inputRack">Rack (°C)</label><input id="inputRack" type="number" min="10" max="45" step="0.5" value="22" required></div>
+              <div class="input-field"><label for="inputCpu">CPU (%)</label><input id="inputCpu" type="number" min="0" max="100" step="1" value="50" required></div>
+              <div class="input-field"><label for="inputExterior">Exterior (°C)</label><input id="inputExterior" type="number" min="0" max="45" step="0.5" value="20" required></div>
+              <button class="button button-primary button-run" id="btnCalcularInferencia" aria-label="Calcular inferencia" title="Calcular inferencia" disabled>▶</button>
+              <span class="input-vector" id="vectorEntradas">[22, 50, 20]</span>
+            </form>
+            <div class="diagram-scroll">
+              <div class="fis-diagram" id="fisCanvasArea">
+                <svg class="fis-connectors" aria-hidden="true"><defs>
+                  <marker id="arrowIn" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8" fill="#008cbb"/></marker>
+                  <marker id="arrowOut" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8" fill="#db6528"/></marker>
+                </defs><path id="pathInput1" class="connector-input"/><path id="pathInput2" class="connector-input"/><path id="pathInput3" class="connector-input"/><path id="pathOutput" class="connector-output"/></svg>
+                <div class="fis-inputs">
+                  <button class="variable-block selected" id="blockInputRack" data-variable="temperatura_rack" aria-label="Inspeccionar temperatura del rack"><span class="mini-chart"><canvas id="miniCanvasRack" role="img" aria-label="Pertenencias de temperatura del rack"></canvas></span><span class="block-name">temperatura_rack</span><span class="block-range">10 – 45 °C</span></button>
+                  <button class="variable-block" id="blockInputCpu" data-variable="uso_cpu" aria-label="Inspeccionar uso de CPU"><span class="mini-chart"><canvas id="miniCanvasCpu" role="img" aria-label="Pertenencias de uso de CPU"></canvas></span><span class="block-name">uso_cpu</span><span class="block-range">0 – 100 %</span></button>
+                  <button class="variable-block" id="blockInputExt" data-variable="temperatura_exterior" aria-label="Inspeccionar temperatura exterior"><span class="mini-chart"><canvas id="miniCanvasExt" role="img" aria-label="Pertenencias de temperatura exterior"></canvas></span><span class="block-name">temperatura_exterior</span><span class="block-range">0 – 45 °C</span></button>
                 </div>
-
-                <!-- Gráfico Inferior: Potencia Aplicada y Clima Exterior -->
-                <div class="plot-card">
-                  <div class="plot-card-header">
-                    <span><i class="fa-solid fa-fan" style="color: #0284c7;"></i> Dinámica de Potencia HVAC (%) y Condiciones Ambientales (CPU % y T_exterior °C)</span>
-                    <span style="color: var(--matlab-text-muted);">Perfil 24h desde datos.csv</span>
-                  </div>
-                  <div class="plot-card-body" id="plotSimulacionPotenciaClima"></div>
-                </div>
+                <button class="mamdani-block" id="blockMamdani" aria-label="Ver las reglas del controlador Mamdani"><span class="engine-symbol" aria-hidden="true">μ</span><strong>(mamdani)</strong><span class="engine-rules" id="fisBadgeReglas">— reglas</span><span class="engine-method">AND: min · OR: max</span><span class="engine-method">Agregación: max</span><span class="engine-method">Centroide</span></button>
+                <div class="fis-output"><output class="centroid-result" id="fisOutputValCentroid" aria-live="polite">z* = — %</output><button class="variable-block output-block" id="blockOutputPotencia" data-variable="potencia_enfriamiento" aria-label="Inspeccionar potencia de enfriamiento"><span class="output-chart"><canvas id="canvasSalida" role="img" aria-label="Salida agregada y centroide de la inferencia"></canvas></span><span class="block-name">potencia_enfriamiento</span><span class="block-range" id="descripcionSalida">Salida agregada · 0 – 100 %</span></button></div>
               </div>
             </div>
-          </article>
-
-          <!-- --------------------------------------------------------------
-               PESTAÑA 2: SISTEMA FIS (DIAGRAMA DE BLOQUES TIPO MATLAB)
-               -------------------------------------------------------------- -->
-          <article class="tab-pane" id="tabFIS">
-            <div class="fis-diagram-container">
-              <div class="fis-header-bar">
-                <span style="font-weight: 700; font-size: 12px; color: #1e293b;">
-                  <i class="fa-solid fa-sitemap" style="color: var(--matlab-blue);"></i>
-                  Arquitectura FIS (Fuzzy Inference System) — MATLAB Simulink Style
-                </span>
-                <span style="font-size: 11px; color: var(--matlab-text-muted);">
-                  Motor de Inferencia Mamdani: 3 Entradas &rarr; 1 Salida
-                </span>
-              </div>
-
-              <!-- Lienzo del Diagrama de Bloques FIS -->
-              <div class="fis-canvas-area" id="fisCanvasArea">
-                <!-- SVG de Conexiones entre Bloques -->
-                <svg class="fis-svg-connector" id="fisSvgConnector">
-                  <defs>
-                    <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
-                      <polygon points="0 0, 8 3, 0 6" fill="#0284c7" />
-                    </marker>
-                    <marker id="arrowhead-out" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
-                      <polygon points="0 0, 8 3, 0 6" fill="#16a34a" />
-                    </marker>
-                  </defs>
-                  <path id="pathInput1" d="M 230 75 C 310 75, 310 190, 360 190" stroke="#0284c7" stroke-width="2.5" fill="none" marker-end="url(#arrowhead)" />
-                  <path id="pathInput2" d="M 230 190 L 360 190" stroke="#0284c7" stroke-width="2.5" fill="none" marker-end="url(#arrowhead)" />
-                  <path id="pathInput3" d="M 230 305 C 310 305, 310 190, 360 190" stroke="#0284c7" stroke-width="2.5" fill="none" marker-end="url(#arrowhead)" />
-                  <path id="pathOutput" d="M 580 190 L 650 190" stroke="#16a34a" stroke-width="2.5" fill="none" marker-end="url(#arrowhead-out)" />
-                </svg>
-
-                <!-- Columna Izquierda: 3 Bloques de Entrada -->
-                <div class="fis-inputs-col">
-                  <!-- Bloque 1: temperatura_rack -->
-                  <div class="fis-block" id="blockInputRack">
-                    <div class="fis-block-header">
-                      <span><i class="fa-solid fa-temperature-half" style="color: #0284c7;"></i> temperatura_rack</span>
-                      <span class="fis-block-range">[10, 45] °C</span>
-                    </div>
-                    <div class="fis-mini-canvas-container">
-                      <canvas id="miniCanvasRack"></canvas>
-                    </div>
-                  </div>
-
-                  <!-- Bloque 2: uso_cpu -->
-                  <div class="fis-block" id="blockInputCpu">
-                    <div class="fis-block-header">
-                      <span><i class="fa-solid fa-microchip" style="color: #16a34a;"></i> uso_cpu</span>
-                      <span class="fis-block-range">[0, 100] %</span>
-                    </div>
-                    <div class="fis-mini-canvas-container">
-                      <canvas id="miniCanvasCpu"></canvas>
-                    </div>
-                  </div>
-
-                  <!-- Bloque 3: temperatura_exterior -->
-                  <div class="fis-block" id="blockInputExt">
-                    <div class="fis-block-header">
-                      <span><i class="fa-solid fa-cloud-sun" style="color: #d97706;"></i> temperatura_exterior</span>
-                      <span class="fis-block-range">[0, 45] °C</span>
-                    </div>
-                    <div class="fis-mini-canvas-container">
-                      <canvas id="miniCanvasExt"></canvas>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Columna Central: Bloque Mamdani (36 Reglas Activas) -->
-                <div class="fis-center-col">
-                  <div class="fis-center-block">
-                    <div class="fis-center-title">
-                      <i class="fa-solid fa-brain"></i> ClimatizacionDatacenter
-                    </div>
-                    <div class="fis-center-type">(mamdani)</div>
-                    <div class="fis-rules-badge" id="fisBadgeReglas">36 Reglas Activas</div>
-                    <div class="fis-center-props">
-                      <div><strong>Método AND:</strong> min</div>
-                      <div><strong>Método OR:</strong> max</div>
-                      <div><strong>Implicación:</strong> min</div>
-                      <div><strong>Agregación:</strong> max</div>
-                      <div><strong>Defuzzificación:</strong> centroid</div>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Columna Derecha: Bloque de Salida -->
-                <div class="fis-output-col">
-                  <div class="fis-block output-block" id="blockOutputPotencia">
-                    <div class="fis-block-header">
-                      <span><i class="fa-solid fa-fan" style="color: #f59e0b;"></i> potencia_enfriamiento</span>
-                      <span class="fis-block-range">[0, 100] %</span>
-                    </div>
-                    <div class="fis-mini-canvas-container">
-                      <canvas id="miniCanvasPotencia"></canvas>
-                    </div>
-                    <div style="font-size: 11px; font-weight: 700; color: #b45309; text-align: center; margin-top: 4px;">
-                      Salida Actual: <span id="fisOutputValCentroid">43.3 %</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Panel Detallado de Funciones de Pertenencia en Cuadrícula -->
-              <div style="background: #f8fafc; border: 1px solid var(--matlab-border); border-radius: 6px; padding: 12px;">
-                <div style="font-weight: 700; font-size: 11.5px; color: #1e293b; margin-bottom: 8px;">
-                  <i class="fa-solid fa-chart-area"></i> Inspección Detallada de Funciones de Pertenencia (Curvas Reales)
-                </div>
-                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
-                  <!-- Tarjeta Rack -->
-                  <div style="background: #ffffff; border: 1px solid var(--matlab-border-light); border-radius: 5px; padding: 8px;">
-                    <div style="font-size: 11px; font-weight: 600; color: #334155; margin-bottom: 4px;">
-                      <i class="fa-solid fa-temperature-half" style="color: #0284c7;"></i> Entrada: temperatura_rack (°C)
-                    </div>
-                    <div style="height: 140px; position: relative;">
-                      <canvas id="chartFullRack"></canvas>
-                    </div>
-                  </div>
-
-                  <!-- Tarjeta CPU -->
-                  <div style="background: #ffffff; border: 1px solid var(--matlab-border-light); border-radius: 5px; padding: 8px;">
-                    <div style="font-size: 11px; font-weight: 600; color: #334155; margin-bottom: 4px;">
-                      <i class="fa-solid fa-microchip" style="color: #16a34a;"></i> Entrada: uso_cpu (%)
-                    </div>
-                    <div style="height: 140px; position: relative;">
-                      <canvas id="chartFullCpu"></canvas>
-                    </div>
-                  </div>
-
-                  <!-- Tarjeta Ext -->
-                  <div style="background: #ffffff; border: 1px solid var(--matlab-border-light); border-radius: 5px; padding: 8px;">
-                    <div style="font-size: 11px; font-weight: 600; color: #334155; margin-bottom: 4px;">
-                      <i class="fa-solid fa-cloud-sun" style="color: #d97706;"></i> Entrada: temperatura_exterior (°C)
-                    </div>
-                    <div style="height: 140px; position: relative;">
-                      <canvas id="chartFullExt"></canvas>
-                    </div>
-                  </div>
-
-                  <!-- Tarjeta Potencia -->
-                  <div style="background: #ffffff; border: 1px solid var(--matlab-border-light); border-radius: 5px; padding: 8px;">
-                    <div style="font-size: 11px; font-weight: 600; color: #334155; margin-bottom: 4px;">
-                      <i class="fa-solid fa-fan" style="color: #f59e0b;"></i> Salida: potencia_enfriamiento (%)
-                    </div>
-                    <div style="height: 140px; position: relative;">
-                      <canvas id="chartFullPotencia"></canvas>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </article>
-
-          <!-- --------------------------------------------------------------
-               PESTAÑA 3: BASE DE 36 REGLAS
-               -------------------------------------------------------------- -->
-          <article class="tab-pane" id="tabReglas">
-            <div class="table-rules-layout">
-              <div class="rules-toolbar">
-                <div style="display: flex; align-items: center; gap: 12px;">
-                  <span style="font-weight: 700; font-size: 12px; color: #1e293b;">
-                    <i class="fa-solid fa-table-list" style="color: var(--matlab-blue);"></i>
-                    Base de 36 Reglas del Controlador Mamdani
-                  </span>
-                  <span class="kpi-badge badge-blue" id="lblTotalReglasCount">36 Reglas Activas</span>
-                </div>
-                <div style="display: flex; align-items: center; gap: 8px;">
-                  <label for="selectFiltroRack" style="font-size: 11px; font-weight: 600;">Filtrar por Rack:</label>
-                  <select id="selectFiltroRack" style="padding: 3px 6px; font-size: 11px; border: 1px solid var(--matlab-border); border-radius: 4px;">
-                    <option value="TODOS">Todas las reglas (36)</option>
-                    <option value="BAJA">Rack: BAJA (Genes 0-8)</option>
-                    <option value="OPTIMA">Rack: OPTIMA (Genes 9-17)</option>
-                    <option value="ALTA">Rack: ALTA (Genes 18-26)</option>
-                    <option value="CRITICA">Rack: CRITICA (Genes 27-35)</option>
-                  </select>
-                </div>
-              </div>
-
-              <!-- Tabla de Reglas -->
-              <div class="rules-table-container">
-                <table class="matlab-table" id="tablaReglas36">
-                  <thead>
-                    <tr>
-                      <th style="width: 50px; text-align: center;">#</th>
-                      <th>Condición Antecedente (IF ...)</th>
-                      <th style="width: 220px; text-align: center;">Acción HVAC (THEN ...)</th>
-                      <th style="width: 100px; text-align: center;">Nivel (0-3)</th>
-                    </tr>
-                  </thead>
-                  <tbody id="tbodyReglas36">
-                    <!-- Filas pobladas dinámicamente -->
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </article>
-
-          <!-- --------------------------------------------------------------
-               PESTAÑA 4: SUPERFICIE 3D DE CONTROL
-               -------------------------------------------------------------- -->
-          <article class="tab-pane" id="tabSuperficie">
-            <div class="surface-container">
-              <div class="surface-controls">
-                <label for="sliderSurfaceExt" style="font-weight: 600; font-size: 11.5px;">
-                  Temperatura Exterior Fija: <span id="valSurfaceExt" style="font-family: var(--font-mono); font-weight: 700; color: #0284c7; background: #e0f2fe; padding: 2px 6px; border-radius: 3px;">20.0 °C</span>
-                </label>
-                <input type="range" id="sliderSurfaceExt" min="5" max="38" step="1" value="20" style="width: 220px; accent-color: var(--matlab-blue);">
-                <button class="btn-calc-inferencia" id="btnActualizarSuperficie">
-                  <i class="fa-solid fa-rotate"></i> Recalcular Superficie
-                </button>
-                <span style="font-size: 11px; color: var(--matlab-text-muted); margin-left: auto;">
-                  <i class="fa-solid fa-info-circle"></i> Ejes: Temp. Rack (°C) &times; Uso CPU (%) &rarr; Potencia HVAC (%)
-                </span>
-              </div>
-              <div id="plotSuperficie3D" class="surface-plot"></div>
-            </div>
-          </article>
-
-        </div>
+            <div class="diagram-footnote"><span class="tiny-line" aria-hidden="true"></span> Entradas y pertenencias <span class="tiny-line orange" aria-hidden="true"></span> Salida defusificada <span class="diagram-footnote-end">Haz clic en un bloque para inspeccionarlo</span></div>
+          </div>
+          <section class="membership-view" id="vistaPertenencia" aria-label="Funciones de pertenencia" hidden><div class="chart-legend" id="leyendaPertenencia"></div><div class="membership-chart"><canvas id="canvasPertenencia" role="img" aria-label="Curvas de pertenencia de la variable seleccionada"></canvas></div><p class="chart-note" id="notaPertenencia">Los grados de pertenencia están entre 0 y 1.</p></section>
+        </article>
+        <article class="workspace-pane rules-pane" id="tabReglas" role="tabpanel" aria-labelledby="tabHeadReglas" hidden>
+          <div class="view-heading"><div><h2>Base de reglas difusas</h2><p id="descripcionReglas">Cargando la tabla del controlador…</p></div><span class="count-badge" id="contadorReglas">— reglas</span></div>
+          <div class="rules-toolbar"><label for="selectFiltroRack">Temperatura del rack</label><select id="selectFiltroRack"><option value="TODOS">Todos los conjuntos</option><option>BAJA</option><option>OPTIMA</option><option>ALTA</option><option>CRITICA</option></select><label class="search-label" for="buscarReglas">Buscar</label><input type="search" id="buscarReglas" placeholder="CPU, exterior, consecuente…"></div>
+          <div class="rules-table-container"><table class="rules-table"><caption class="sr-only">Reglas cargadas en el controlador; el gen codifica el consecuente.</caption><thead><tr><th scope="col">#</th><th scope="col">Regla difusa · SI … ENTONCES …</th><th scope="col">Gen</th></tr></thead><tbody id="tbodyReglas36"></tbody></table><p class="empty-state" id="reglasVacias" hidden>No hay reglas que coincidan con este filtro.</p></div>
+          <p class="rules-note">Gen: 0 = MINIMA · 1 = MEDIA · 2 = ALTA · 3 = MAXIMA. La aptitud se evalúa sobre la tabla completa.</p>
+        </article>
+        <div class="feedback-bar" id="mensajeError" role="alert" hidden><span id="textoError"></span><button class="button button-small" id="btnReintentar">Reintentar conexión</button></div>
       </section>
-
     </main>
-
-    <!-- 4. BARRA DE ESTADO INFERIOR -->
-    <footer class="matlab-statusbar">
-      <div class="statusbar-left">
-        <span class="status-dot" id="statusDot"></span>
-        <span id="statusbarText">Listo | Conectado a Servidor Flask</span>
-      </div>
-      <div class="statusbar-right">
-        <span>Estándar: <strong>ASHRAE TC 9.9 Clase A1</strong></span>
-        <span>Servidores: <strong>Clúster Dell R740 / Xeon</strong></span>
-        <span>Estado: <strong style="color: #15803d;">Óptimo (36 Reglas Activas)</strong></span>
-        <span>Simulación: <strong>96 Pasos (&Delta;t = 15 min)</strong></span>
-      </div>
-    </footer>
-
+    <footer class="statusbar"><span class="status-dot" id="statusDot" aria-hidden="true"></span><span id="statusText" role="status">Conectando con el controlador…</span><span class="status-context">Simulación de 24 horas · Datos sintéticos</span></footer>
   </div>
-
-  <!-- Script Principal de la Aplicación -->
-  <script src="/js/app.js"></script>
 </body>
-
 </html>

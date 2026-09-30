@@ -130,7 +130,7 @@ class OptimizacionEnergetica:
             condicion_antecedente = self.var_rack[r_rack] & self.var_cpu[r_cpu] & self.var_ext[r_ext]
             consecuente = self.var_enf[etiqueta_salida]
             regla = ctrl.Rule(condicion_antecedente, consecuente)
-            regla.weight = 1.0  # Reglas del genético con peso unitario sin Apriori
+            regla.weight = 1.0  # Reglas del genético con peso unitario
             reglas.append(regla)
 
         sistema_control = ctrl.ControlSystem(reglas)

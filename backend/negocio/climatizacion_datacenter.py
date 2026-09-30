@@ -8,12 +8,6 @@ from ..fuentes_datos.sensores_servidores import SensoresServidores
 from .climatizacion_difusa import ClimatizacionDifusa
 from .optimizacion_energetica import OptimizacionEnergetica
 
-# ==============================================================================
-# TABLA HEURÍSTICA SIMPLE POR DEFECTO [PROPUESTA]
-# Tabla base de 36 reglas según sentido común termodinámico utilizada al iniciar
-# el servidor, antes de ejecutar la optimización genética.
-# 0: MINIMA, 1: MEDIA, 2: ALTA, 3: MAXIMA
-# ==============================================================================
 TABLA_REGLAS_POR_DEFECTO = [
     # T_rack: BAJA (CPU: Bajo, Medio, Alto x T_ext: Frio, Temp, Cal)
     0, 0, 0,  0, 0, 1,  0, 1, 1,
