@@ -62,6 +62,8 @@ def crear_controlador_api(datacenter, ruta_archivo_sensores_csv: str) -> Bluepri
 
     @controlador.route("/inferencia", methods=["POST"])
     def evaluar_inferencia_tiempo_real():
+        if not datacenter.lista_reglas_activas:
+            return jsonify({"error": "Genera primero las reglas con el algoritmo genético."}), 409
         datos_peticion = request.get_json() or {}
         temperatura_rack = float(datos_peticion.get("temperatura_rack", 22.0))
         porcentaje_cpu = float(datos_peticion.get("uso_cpu", 50.0))
@@ -80,6 +82,8 @@ def crear_controlador_api(datacenter, ruta_archivo_sensores_csv: str) -> Bluepri
 
     @controlador.route("/superficie-3d", methods=["GET"])
     def obtener_malla_superficie_3d():
+        if not datacenter.lista_reglas_activas:
+            return jsonify({"error": "Genera primero las reglas con el algoritmo genético."}), 409
         temperatura_exterior = float(request.args.get("temp_ext", 20.0))
         return jsonify(datacenter.obtener_superficie_3d(temperatura_exterior_fija=temperatura_exterior))
 

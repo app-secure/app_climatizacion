@@ -8,17 +8,6 @@ from ..fuentes_datos.sensores_servidores import SensoresServidores
 from .climatizacion_difusa import ClimatizacionDifusa
 from .optimizacion_energetica import OptimizacionEnergetica
 
-TABLA_REGLAS_POR_DEFECTO = [
-    # T_rack: BAJA (CPU: Bajo, Medio, Alto x T_ext: Frio, Temp, Cal)
-    0, 0, 0,  0, 0, 1,  0, 1, 1,
-    # T_rack: OPTIMA (CPU: Bajo, Medio, Alto x T_ext: Frio, Temp, Cal)
-    0, 0, 1,  1, 1, 2,  1, 2, 2,
-    # T_rack: ALTA (CPU: Bajo, Medio, Alto x T_ext: Frio, Temp, Cal)
-    1, 1, 2,  2, 2, 3,  2, 3, 3,
-    # T_rack: CRITICA (CPU: Bajo, Medio, Alto x T_ext: Frio, Temp, Cal)
-    2, 3, 3,  3, 3, 3,  3, 3, 3
-]
-
 
 class ClimatizacionDatacenter:
     """
@@ -42,10 +31,7 @@ class ClimatizacionDatacenter:
         )
 
         self.lista_reglas_activas = []
-        self.tabla_reglas_actual = list(TABLA_REGLAS_POR_DEFECTO)
-
-        # Paso 2: Cargar tabla heurística por defecto al arrancar el sistema [PROPUESTA]
-        self.cargar_tabla_reglas_controlador(TABLA_REGLAS_POR_DEFECTO)
+        self.tabla_reglas_actual = None
 
     @property
     def controlador_difuso(self):
@@ -54,9 +40,8 @@ class ClimatizacionDatacenter:
     def cargar_tabla_reglas_controlador(self, tabla_36_genes: list) -> list:
         """
         Carga una tabla de 36 reglas en el controlador difuso activo.
-        Al arrancar carga la tabla heurística por defecto, y tras la optimización
-        genética carga la mejor solución encontrada para sincronizar /api/inferencia
-        y /api/superficie-3d.
+        Tras la optimización genética carga la mejor solución encontrada para
+        sincronizar /api/inferencia y /api/superficie-3d.
         """
         self.tabla_reglas_actual = list(tabla_36_genes)
         reglas_descriptivas = self.climatizacion_difusa.cargar_desde_tabla_genes(tabla_36_genes)
@@ -67,7 +52,14 @@ class ClimatizacionDatacenter:
         """
         Retorna la simulación dinámica en 96 pasos y los KPIs de la tabla activa vs. termostato fijo.
         """
-        tabla = getattr(self, "tabla_reglas_actual", TABLA_REGLAS_POR_DEFECTO)
+        if self.tabla_reglas_actual is None:
+            return {
+                "horas": [], "serie_temp_exterior": [], "serie_uso_cpu": [],
+                "serie_temperaturas": [], "serie_potencias": [],
+                "serie_temperaturas_estandar": [], "serie_potencias_estandar": [],
+                "kpis": {}
+            }
+        tabla = self.tabla_reglas_actual
         _, det_opt = self.optimizacion_energetica.simular_dia(tabla)
         det_base = self.optimizacion_energetica.simular_termostato_fijo(temperatura_fija)
 

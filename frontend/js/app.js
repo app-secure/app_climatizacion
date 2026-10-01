@@ -97,9 +97,7 @@ const app = {
     const [estado, curvas] = await Promise.allSettled([this.pedir("/api/estado"), this.pedir("/api/curvas-pertenencia")]);
     let error = null;
     if (estado.status === "fulfilled") {
-      // La API de estado no informa el origen de la tabla; al reconectar
-      // mostramos "Tabla activa", incluso si el servidor se reinició.
-      this.optimizado = false;
+      this.optimizado = estado.value.total_reglas > 0;
       this.actualizarModelo(estado.value);
       this.estadoCargado = true;
     } else error = estado.reason;
@@ -109,7 +107,8 @@ const app = {
     } else error = curvas.reason;
     this.setOcupado(false);
     if (error) this.mostrarError(error.message);
-    else await this.ejecutarInferencia();
+    else if (this.reglas.length) await this.ejecutarInferencia();
+    else this.status("Sin reglas. En la pestaña Reglas pulsa Evolucionar con AG para generarlas.");
   },
 
   actualizarModelo(data) {
@@ -117,9 +116,15 @@ const app = {
     const total = this.reglas.length;
     this.el("fisBadgeReglas").textContent = `${total} reglas`;
     this.el("totalReglasSidebar").textContent = total;
-    this.el("estadoReglas").textContent = this.optimizado ? "Optimizada con AG" : "Tabla activa";
-    this.el("descripcionReglas").textContent = this.optimizado ? "Consecuentes de la mejor tabla encontrada por el algoritmo genético." : "Reglas de la tabla cargada en el controlador Mamdani.";
-    this.el("fuenteResultados").textContent = this.optimizado ? "Tabla optimizada · Simulación de 24 h" : "Tabla activa · Simulación de 24 h";
+    this.el("estadoReglas").textContent = total ? "Generada con AG" : "Sin generar";
+    this.el("descripcionReglas").textContent = total ? "Consecuentes de la mejor tabla encontrada por el algoritmo genético." : "Genera la primera tabla con el botón Evolucionar con AG.";
+    this.el("fuenteResultados").textContent = total ? "Tabla generada con AG · Simulación de 24 h" : "Pendiente de generar reglas";
+    if (!total) {
+      this.salida = null;
+      this.entradasEvaluadas = null;
+      this.el("fisOutputValCentroid").textContent = "z* = — %";
+      this.el("descripcionSalida").textContent = "Genera primero las reglas con AG";
+    }
     const costo = data.kpis?.costo_diario;
     const consumo = data.kpis?.consumo_kwh;
     this.el("kpiCostoDiario").textContent = Number.isFinite(costo) ? `$ ${this.numero(costo, 2)}` : "—";
@@ -131,7 +136,7 @@ const app = {
     this.ocupado = value;
     this.el("btnReintentar").disabled = value;
     this.el("btnEjecutarGA").disabled = value || !this.estadoCargado;
-    this.el("btnCalcularInferencia").disabled = value || !this.estadoCargado;
+    this.el("btnCalcularInferencia").disabled = value || !this.estadoCargado || !this.reglas.length;
     document.querySelectorAll("#formInferencia input, #formGenetico input").forEach(input => { input.disabled = value; });
     const sinCurvas = !this.curvas;
     this.el("selectVariable").disabled = sinCurvas;
@@ -249,13 +254,17 @@ const app = {
     }));
     this.el("contadorReglas").textContent = `${rows.length} / ${this.reglas.length} reglas`;
     this.el("reglasVacias").hidden = rows.length !== 0;
+    this.el("reglasVacias").textContent = this.reglas.length ? "No hay reglas que coincidan con este filtro." : "Aún no hay reglas. Pulsa Evolucionar con AG en el panel izquierdo para generar la primera tabla.";
+    this.el("tablaReglas").hidden = !this.reglas.length;
+    this.el("filtrosReglas").hidden = !this.reglas.length;
+    this.el("notaGenes").hidden = !this.reglas.length;
   },
 
   actualizarVectorEntradas() {
     this.el("vectorEntradas").textContent = `[${["inputRack", "inputCpu", "inputExterior"].map(id => this.el(id).value || "—").join(", ")}]`;
   },
   async ejecutarInferencia() {
-    if (this.ocupado || !this.estadoCargado || !this.el("formInferencia").reportValidity()) return;
+    if (this.ocupado || !this.estadoCargado || !this.reglas.length || !this.el("formInferencia").reportValidity()) return;
     const datos = { temperatura_rack: this.el("inputRack").valueAsNumber, uso_cpu: this.el("inputCpu").valueAsNumber, temperatura_exterior: this.el("inputExterior").valueAsNumber };
     this.setOcupado(true);
     this.limpiarError();
